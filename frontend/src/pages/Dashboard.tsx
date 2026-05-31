@@ -7,7 +7,7 @@ import { Badge } from "../components/ui/Badge";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import {
   Activity, Box, Shield, ArrowUpCircle,
-  AlertCircle, Search, EyeOff, Play, Square, RotateCcw, X,
+  Search, EyeOff, Play, Square, RotateCcw, X,
   CheckCircle2, XCircle, Loader2
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -109,8 +109,7 @@ function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
 const filters: { value: FilterType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "running", label: "Running" },
-  { value: "stopped", label: "Stopped" },
-  { value: "unhealthy", label: "Unhealthy" },
+  { value: "stopped", label: "Offline" },
   { value: "protected", label: "Protected" },
   { value: "updates_available", label: "Updates" },
 ];
@@ -222,10 +221,12 @@ export default function Dashboard() {
           color="bg-green-900/40"
         />
         <SummaryCard
-          label="Stopped"
+          label="Offline"
           value={summary?.stopped ?? 0}
           icon={<Box className="h-4 w-4 text-slate-400" />}
           color="bg-slate-700"
+          onClick={() => setFilter(filter === "stopped" ? "all" : "stopped")}
+          active={filter === "stopped"}
         />
         <SummaryCard
           label="Excluded"
@@ -244,14 +245,6 @@ export default function Dashboard() {
           value={updatesAvailable}
           icon={<ArrowUpCircle className="h-4 w-4 text-emerald-400" />}
           color="bg-emerald-900/40"
-        />
-        <SummaryCard
-          label="Unhealthy"
-          value={summary?.unhealthy ?? 0}
-          icon={<AlertCircle className="h-4 w-4 text-red-400" />}
-          color="bg-red-900/40"
-          onClick={() => setFilter(filter === "unhealthy" ? "all" : "unhealthy")}
-          active={filter === "unhealthy"}
         />
       </div>
 

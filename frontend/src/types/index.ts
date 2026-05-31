@@ -120,8 +120,7 @@ export type FilterType =
   | "running"
   | "stopped"
   | "protected"
-  | "updates_available"
-  | "unhealthy";
+  | "updates_available";
 
 export interface ContainerSettings {
   container_name: string;
