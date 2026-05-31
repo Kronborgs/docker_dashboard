@@ -268,18 +268,26 @@ export default function ContainerDetail() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Stats (24h)</h2>
               <div className="flex gap-1">
-                {(["cpu", "memory", "network", "block"] as ChartMetric[]).map((m) => (
+                {(
+                  [
+                    { key: "cpu",     label: "cpu",     title: "CPU — Procentdel af CPU-tid containeren bruger. Høj CPU kan betyde tung beregning eller en hængt proces." },
+                    { key: "memory",  label: "memory",  title: "Memory — RAM-forbrug i MB. Viser hvor meget hukommelse containeren har allokeret og bruger." },
+                    { key: "network", label: "network", title: "Network — Netværkstrafik (RX = modtaget, TX = sendt). Nyttigt til at se båndbreddeforbrug og aktivitet." },
+                    { key: "block",   label: "block",   title: "Block I/O — Disk-læsning og skrivning. Høj block I/O kan indikere tung databaseaktivitet eller filoperationer." },
+                  ] as { key: ChartMetric; label: string; title: string }[]
+                ).map(({ key, label, title }) => (
                   <button
-                    key={m}
-                    onClick={() => setChartMetric(m)}
+                    key={key}
+                    onClick={() => setChartMetric(key)}
+                    title={title}
                     className={clsx(
                       "px-2 py-1 rounded text-xs transition-colors",
-                      chartMetric === m
+                      chartMetric === key
                         ? "bg-blue-600 text-white"
                         : "bg-slate-700 text-slate-400 hover:text-slate-200"
                     )}
                   >
-                    {m}
+                    {label}
                   </button>
                 ))}
               </div>

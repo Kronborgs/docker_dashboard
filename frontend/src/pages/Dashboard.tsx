@@ -106,12 +106,12 @@ function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
   );
 }
 
-const filters: { value: FilterType; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "running", label: "Running" },
-  { value: "stopped", label: "Offline" },
-  { value: "protected", label: "Protected" },
-  { value: "updates_available", label: "Updates" },
+const filters: { value: FilterType; label: string; title: string }[] = [
+  { value: "all",              label: "All",       title: "Vis alle containere" },
+  { value: "running",          label: "Running",   title: "Vis kun containere der kører" },
+  { value: "stopped",          label: "Offline",   title: "Vis kun stoppede / offline containere" },
+  { value: "protected",        label: "Protected", title: "Vis kun containere der er beskyttet mod ændringer" },
+  { value: "updates_available",label: "Updates",   title: "Vis kun containere med tilgængelige opdateringer" },
 ];
 
 interface SummaryCardProps {
@@ -121,9 +121,10 @@ interface SummaryCardProps {
   color: string;
   onClick?: () => void;
   active?: boolean;
+  title?: string;
 }
 
-function SummaryCard({ label, value, icon, color, onClick, active }: SummaryCardProps) {
+function SummaryCard({ label, value, icon, color, onClick, active, title }: SummaryCardProps) {
   return (
     <div
       className={clsx(
@@ -132,6 +133,7 @@ function SummaryCard({ label, value, icon, color, onClick, active }: SummaryCard
         active ? "border-blue-500" : "border-slate-700/60"
       )}
       onClick={onClick}
+      title={title}
     >
       <div className={clsx("p-2.5 rounded-lg", color)}>{icon}</div>
       <div>
@@ -212,12 +214,14 @@ export default function Dashboard() {
           value={summary?.total ?? containers.length}
           icon={<Box className="h-4 w-4 text-slate-300" />}
           color="bg-slate-700"
+          title="Total — Det samlede antal Docker-containere på serveren."
         />
         <SummaryCard
           label="Running"
           value={summary?.running ?? 0}
           icon={<Activity className="h-4 w-4 text-green-400" />}
           color="bg-green-900/40"
+          title="Running — Containere der kører og er aktive lige nu."
         />
         <SummaryCard
           label="Offline"
@@ -226,24 +230,28 @@ export default function Dashboard() {
           color="bg-slate-700"
           onClick={() => setFilter(filter === "stopped" ? "all" : "stopped")}
           active={filter === "stopped"}
+          title="Offline — Containere der er stoppet eller ikke kører. Klik for at filtrere."
         />
         <SummaryCard
           label="Excluded"
           value={summary?.excluded ?? 0}
           icon={<EyeOff className="h-4 w-4 text-slate-400" />}
           color="bg-slate-700"
+          title="Excluded — Containere der er skjult fra dashboardet via label eller indstillinger."
         />
         <SummaryCard
           label="Protected"
           value={summary?.protected ?? 0}
           icon={<Shield className="h-4 w-4 text-amber-400" />}
           color="bg-amber-900/40"
+          title="Protected — Containere der er låst mod stop, genstart og opdatering."
         />
         <SummaryCard
           label="Updates"
           value={updatesAvailable}
           icon={<ArrowUpCircle className="h-4 w-4 text-emerald-400" />}
           color="bg-emerald-900/40"
+          title="Updates — Containere hvor der er et nyere Docker image tilgængeligt."
         />
       </div>
 
@@ -255,6 +263,7 @@ export default function Dashboard() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
+              title={f.title}
               className={clsx(
                 "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                 filter === f.value
