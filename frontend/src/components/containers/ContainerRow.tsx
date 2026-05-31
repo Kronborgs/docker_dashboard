@@ -13,6 +13,7 @@ import { UpdateResultModal } from "../modals/UpdateResultModal";
 import { useContainerActions } from "../../hooks";
 import type { UpdateResult } from "../../types";
 import { useNavigate } from "react-router-dom";
+import { useAppStore } from "../../store/useAppStore";
 
 interface ContainerRowProps {
   container: Container;
@@ -71,6 +72,8 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   const [confirm, setConfirm] = useState<ActionType | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
+  const { selectedIds, toggleSelected } = useAppStore();
+  const isSelected = selectedIds.has(container.id);
 
   const isPending =
     actions.start.isPending ||
@@ -108,9 +111,21 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   return (
     <>
       <tr
-        className="border-b border-slate-800 hover:bg-slate-800/40 transition-colors cursor-pointer"
+        className={clsx(
+          "border-b border-slate-800 hover:bg-slate-800/40 transition-colors cursor-pointer",
+          isSelected && "bg-blue-900/20"
+        )}
         onClick={() => navigate(`/container/${container.id}`)}
       >
+        {/* Checkbox */}
+        <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleSelected(container.id)}
+            className="rounded border-slate-600 bg-slate-700 text-blue-600 cursor-pointer"
+          />
+        </td>
         {/* Name + badges */}
         <td className="px-4 py-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -162,7 +177,10 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
           {primaryNet ? (
             <>
               <div className="text-slate-300">{primaryNet.ip || "—"}</div>
-              <div className="text-slate-600 truncate max-w-[100px]">{primaryNet.network_name}</div>
+              <div className="text-slate-600 truncate max-w-[130px]">{primaryNet.network_name}</div>
+              {primaryNet.mac && (
+                <div className="text-slate-600 text-[10px]">{primaryNet.mac}</div>
+              )}
             </>
           ) : "—"}
         </td>

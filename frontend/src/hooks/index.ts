@@ -204,3 +204,50 @@ export function useDeleteContainerSettings() {
     onError: (e: Error) => addToast("error", e.message),
   });
 }
+
+export function useBulkActions() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  const clearSelected = useAppStore((s) => s.clearSelected);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["containers"] });
+    qc.invalidateQueries({ queryKey: ["summary"] });
+  };
+
+  const bulk = useMutation({
+    mutationFn: async ({
+      ids,
+      action,
+    }: {
+      ids: string[];
+      action: "start" | "stop" | "restart" | "update";
+    }) => {
+      const results: { id: string; ok: boolean; error?: string }[] = [];
+      for (const id of ids) {
+        try {
+          if (action === "start") await startContainer(id);
+          else if (action === "stop") await stopContainer(id);
+          else if (action === "restart") await restartContainer(id);
+          else if (action === "update") await updateContainer(id);
+          results.push({ id, ok: true });
+        } catch (e: any) {
+          results.push({ id, ok: false, error: e?.message ?? "error" });
+        }
+      }
+      return results;
+    },
+    onSuccess: (results, { action }) => {
+      const ok = results.filter((r) => r.ok).length;
+      const fail = results.filter((r) => !r.ok).length;
+      if (fail === 0) addToast("success", `${action}: ${ok} container(s) done`);
+      else addToast("info", `${action}: ${ok} ok, ${fail} failed`);
+      clearSelected();
+      invalidate();
+      if (action === "update") qc.invalidateQueries({ queryKey: ["updates"] });
+    },
+    onError: (e: Error) => addToast("error", e.message),
+  });
+
+  return bulk;
+}

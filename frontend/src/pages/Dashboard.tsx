@@ -1,14 +1,38 @@
-import { useMemo } from "react";
-import { useContainers, useSummary, useUpdates } from "../hooks";
+import { useMemo, useState } from "react";
+import { useContainers, useSummary, useUpdates, useBulkActions } from "../hooks";
 import { useAppStore } from "../store/useAppStore";
 import { ContainerTable } from "../components/containers/ContainerTable";
 import { Badge } from "../components/ui/Badge";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 import {
   Activity, Box, Shield, ArrowUpCircle,
-  AlertCircle, Search, EyeOff
+  AlertCircle, Search, EyeOff, Play, Square, RotateCcw, X
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { Container, FilterType } from "../types";
+
+const actionLabels = { start: "Start", stop: "Stop", restart: "Restart", update: "Update" } as const;
+
+function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
+  action: keyof typeof actionLabels;
+  count: number;
+  loading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <ConfirmModal
+      open
+      title={`${actionLabels[action]} ${count} container(s)?`}
+      description={`This will ${action} all ${count} selected containers in sequence.${action === "update" ? " Protected containers will be skipped." : ""}`}
+      confirmLabel={actionLabels[action]}
+      variant={["stop", "update"].includes(action) ? "danger" : "primary"}
+      loading={loading}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  );
+}
 
 const filters: { value: FilterType; label: string }[] = [
   { value: "all", label: "All" },
@@ -51,7 +75,9 @@ export default function Dashboard() {
   const { data: containers = [], isLoading } = useContainers();
   const { data: summary } = useSummary();
   const { data: updates = [] } = useUpdates();
-  const { filter, search, sortField, sortAsc, setFilter, setSearch, setSort } = useAppStore();
+  const { filter, search, sortField, sortAsc, setFilter, setSearch, setSort, selectedIds, clearSelected } = useAppStore();
+  const bulkActions = useBulkActions();
+  const [bulkConfirm, setBulkConfirm] = useState<"start" | "stop" | "restart" | "update" | null>(null);
 
   const updateMap = useMemo(
     () => Object.fromEntries(updates.map((u) => [u.container_id, u])),
@@ -191,6 +217,46 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 bg-blue-900/30 border border-blue-700/50 rounded-xl px-4 py-2.5">
+          <span className="text-sm font-medium text-blue-300">{selectedIds.size} selected</span>
+          <div className="flex items-center gap-2 flex-1">
+            <button
+              onClick={() => setBulkConfirm("start")}
+              disabled={bulkActions.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-800/50 text-green-300 hover:bg-green-700/60 transition-colors disabled:opacity-50"
+            >
+              <Play className="h-3.5 w-3.5" /> Start
+            </button>
+            <button
+              onClick={() => setBulkConfirm("stop")}
+              disabled={bulkActions.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-900/40 text-red-300 hover:bg-red-800/50 transition-colors disabled:opacity-50"
+            >
+              <Square className="h-3.5 w-3.5" /> Stop
+            </button>
+            <button
+              onClick={() => setBulkConfirm("restart")}
+              disabled={bulkActions.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-800/40 text-blue-300 hover:bg-blue-700/50 transition-colors disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Restart
+            </button>
+            <button
+              onClick={() => setBulkConfirm("update")}
+              disabled={bulkActions.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-900/40 text-emerald-300 hover:bg-emerald-800/50 transition-colors disabled:opacity-50"
+            >
+              <ArrowUpCircle className="h-3.5 w-3.5" /> Update
+            </button>
+          </div>
+          <button onClick={clearSelected} className="text-slate-500 hover:text-slate-300 transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center h-40 text-slate-500">
@@ -198,6 +264,20 @@ export default function Dashboard() {
         </div>
       ) : (
         <ContainerTable containers={filtered} updateStatuses={updates} />
+      )}
+
+      {/* Bulk confirm */}
+      {bulkConfirm && (
+        <BulkConfirmModal
+          action={bulkConfirm}
+          count={selectedIds.size}
+          loading={bulkActions.isPending}
+          onConfirm={() => {
+            bulkActions.mutate({ ids: Array.from(selectedIds), action: bulkConfirm });
+            setBulkConfirm(null);
+          }}
+          onCancel={() => setBulkConfirm(null)}
+        />
       )}
     </div>
   );
