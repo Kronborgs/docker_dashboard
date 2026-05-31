@@ -4,7 +4,7 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import {
   Play, Square, RotateCcw, FileText, ArrowUpCircle,
-  RotateCw, Shield, CheckCircle2, XCircle, Minus, Settings2, EyeOff
+  RotateCw, Shield, CheckCircle2, XCircle, Minus, EyeOff
 } from "lucide-react";
 import { useState } from "react";
 import { ConfirmModal } from "../ui/ConfirmModal";
@@ -66,69 +66,6 @@ function statusLabel(status: string): string {
   return status;
 }
 
-function SettingsModal({ container, onClose }: { container: Container; onClose: () => void }) {
-  const { data: dbSettings } = useContainerSettings(container.name);
-  const patch = usePatchContainerSettings(container.name);
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={onClose}
-    >
-      <div
-        className="bg-slate-800 border border-slate-700 rounded-xl p-5 w-80 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-sm font-semibold text-slate-200 mb-4">
-          {container.name.replace(/^\//, "")}
-        </h3>
-        {/* Protected toggle */}
-        <div className="flex items-center justify-between py-2.5 border-b border-slate-700/50">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-amber-400" />
-            <div>
-              <p className="text-xs font-medium text-slate-300">Protected</p>
-              <p className="text-[10px] text-slate-600">Disables write actions</p>
-            </div>
-          </div>
-          <button
-            disabled={patch.isPending}
-            onClick={() => patch.mutate({ protected: !container.protected })}
-            className={clsx(
-              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
-              container.protected ? "bg-blue-600" : "bg-slate-600",
-              patch.isPending && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", container.protected ? "translate-x-4" : "translate-x-0")} />
-          </button>
-        </div>
-        {/* Excluded toggle */}
-        <div className="flex items-center justify-between py-2.5">
-          <div className="flex items-center gap-2">
-            <EyeOff className="h-4 w-4 text-slate-400" />
-            <div>
-              <p className="text-xs font-medium text-slate-300">Excluded</p>
-              <p className="text-[10px] text-slate-600">Hides from dashboard</p>
-            </div>
-          </div>
-          <button
-            disabled={patch.isPending}
-            onClick={() => { patch.mutate({ excluded: !(dbSettings?.excluded ?? false) }); onClose(); }}
-            className={clsx(
-              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
-              (dbSettings?.excluded ?? false) ? "bg-blue-600" : "bg-slate-600",
-              patch.isPending && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", (dbSettings?.excluded ?? false) ? "translate-x-4" : "translate-x-0")} />
-          </button>
-        </div>
-        <button onClick={onClose} className="mt-3 w-full text-xs text-slate-600 hover:text-slate-400 transition-colors">Close</button>
-      </div>
-    </div>
-  );
-}
-
 type ActionType = "start" | "stop" | "restart" | "update" | "rollback";
 
 const actionLabels: Record<ActionType, string> = {
@@ -145,8 +82,9 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   const [confirm, setConfirm] = useState<ActionType | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const { selectedIds, toggleSelected } = useAppStore();
+  const { data: dbSettings } = useContainerSettings(container.name);
+  const patch = usePatchContainerSettings(container.name);
   const isSelected = selectedIds.has(container.id);
 
   const isPending =
@@ -293,16 +231,6 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
               </span>
             )}
 
-            {/* Settings gear */}
-            <Button
-              size="sm"
-              variant="ghost"
-              title="Protected / Excluded settings"
-              onClick={() => setShowSettings(true)}
-            >
-              <Settings2 className="h-3.5 w-3.5 text-slate-500" />
-            </Button>
-
             {canAct && (
               <>
                 {container.status !== "running" ? (
@@ -361,12 +289,39 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
             )}
           </div>
         </td>
-      </tr>
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <SettingsModal container={container} onClose={() => setShowSettings(false)} />
-      )}
+        {/* Protected toggle */}
+        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+          <button
+            disabled={patch.isPending}
+            onClick={() => patch.mutate({ protected: !container.protected })}
+            title={container.protected ? "Unprotect" : "Protect"}
+            className={clsx(
+              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
+              container.protected ? "bg-amber-500" : "bg-slate-600",
+              patch.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", container.protected ? "translate-x-4" : "translate-x-0")} />
+          </button>
+        </td>
+
+        {/* Excluded toggle */}
+        <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+          <button
+            disabled={patch.isPending}
+            onClick={() => patch.mutate({ excluded: !(dbSettings?.excluded ?? false) })}
+            title={(dbSettings?.excluded ?? false) ? "Re-include" : "Exclude"}
+            className={clsx(
+              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
+              (dbSettings?.excluded ?? false) ? "bg-red-500" : "bg-slate-600",
+              patch.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", (dbSettings?.excluded ?? false) ? "translate-x-4" : "translate-x-0")} />
+          </button>
+        </td>
+      </tr>
 
       {/* Logs Modal */}
       {showLogs && (

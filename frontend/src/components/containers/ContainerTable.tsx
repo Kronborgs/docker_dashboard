@@ -20,6 +20,8 @@ const columns: { label: string; field?: SortField; className?: string; title?: s
   { label: "RX / TX", field: "net_rx_bytes" },
   { label: "Uptime", field: "uptime_seconds" },
   { label: "Actions", className: "w-[160px]" },
+  { label: "Protected", className: "w-[80px] text-center" },
+  { label: "Excluded", className: "w-[80px] text-center" },
 ];
 
 export function ContainerTable({ containers, updateStatuses }: ContainerTableProps) {
