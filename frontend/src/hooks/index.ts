@@ -210,7 +210,16 @@ export function useDeleteContainerSettings() {
   });
 }
 
-export function useBulkActions() {
+export type BulkProgressItem = {
+  id: string;
+  name: string;
+  status: "pending" | "running" | "ok" | "error";
+  error?: string;
+};
+
+export function useBulkActions(
+  onProgress?: (items: BulkProgressItem[]) => void
+) {
   const qc = useQueryClient();
   const addToast = useAppStore((s) => s.addToast);
   const clearSelected = useAppStore((s) => s.clearSelected);
@@ -224,21 +233,37 @@ export function useBulkActions() {
     mutationFn: async ({
       ids,
       action,
+      names,
     }: {
       ids: string[];
       action: "start" | "stop" | "restart" | "update";
+      names: string[];
     }) => {
+      const items: BulkProgressItem[] = ids.map((id, i) => ({
+        id,
+        name: names[i] ?? id,
+        status: "pending",
+      }));
+      onProgress?.([...items]);
+
       const results: { id: string; ok: boolean; error?: string }[] = [];
-      for (const id of ids) {
+      for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
+        items[i] = { ...items[i], status: "running" };
+        onProgress?.([...items]);
         try {
           if (action === "start") await startContainer(id);
           else if (action === "stop") await stopContainer(id);
           else if (action === "restart") await restartContainer(id);
           else if (action === "update") await updateContainer(id);
+          items[i] = { ...items[i], status: "ok" };
           results.push({ id, ok: true });
         } catch (e: any) {
-          results.push({ id, ok: false, error: e?.message ?? "error" });
+          const err = e?.message ?? "error";
+          items[i] = { ...items[i], status: "error", error: err };
+          results.push({ id, ok: false, error: err });
         }
+        onProgress?.([...items]);
       }
       return results;
     },

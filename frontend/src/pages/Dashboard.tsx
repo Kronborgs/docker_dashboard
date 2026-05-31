@@ -1,17 +1,89 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useContainers, useSummary, useUpdates, useBulkActions, useGroups } from "../hooks";
+import type { BulkProgressItem } from "../hooks";
 import { useAppStore } from "../store/useAppStore";
 import { ContainerTable } from "../components/containers/ContainerTable";
 import { Badge } from "../components/ui/Badge";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import {
   Activity, Box, Shield, ArrowUpCircle,
-  AlertCircle, Search, EyeOff, Play, Square, RotateCcw, X
+  AlertCircle, Search, EyeOff, Play, Square, RotateCcw, X,
+  CheckCircle2, XCircle, Loader2
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { Container, FilterType } from "../types";
 
 const actionLabels = { start: "Start", stop: "Stop", restart: "Restart", update: "Update" } as const;
+
+function BulkProgressModal({
+  action, items, onClose,
+}: {
+  action: keyof typeof actionLabels;
+  items: BulkProgressItem[];
+  onClose: () => void;
+}) {
+  const done = items.every((i) => i.status === "ok" || i.status === "error");
+  const ok = items.filter((i) => i.status === "ok").length;
+  const err = items.filter((i) => i.status === "error").length;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+      <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-200">
+            Bulk {actionLabels[action]}
+          </h2>
+          {done && (
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <div className="max-h-80 overflow-y-auto divide-y divide-slate-700/50">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 px-5 py-2.5">
+              <div className="flex-shrink-0">
+                {item.status === "pending" && <div className="w-4 h-4 rounded-full border-2 border-slate-600" />}
+                {item.status === "running" && <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />}
+                {item.status === "ok" && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+                {item.status === "error" && <XCircle className="w-4 h-4 text-red-400" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-300 truncate">{item.name}</p>
+                {item.error && <p className="text-[10px] text-red-400 truncate">{item.error}</p>}
+              </div>
+              <span className={clsx(
+                "text-[10px] font-medium",
+                item.status === "ok" ? "text-green-400" :
+                item.status === "error" ? "text-red-400" :
+                item.status === "running" ? "text-blue-400" : "text-slate-600"
+              )}>
+                {item.status === "running" ? "running…" : item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="px-5 py-3 border-t border-slate-700 flex items-center justify-between">
+          {done ? (
+            <>
+              <span className="text-xs text-slate-500">{ok} ok{err > 0 ? `, ${err} failed` : ""}</span>
+              <button
+                onClick={onClose}
+                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-slate-500">Processing… {items.filter(i => i.status === "ok" || i.status === "error").length}/{items.length}</span>
+              <span className="text-xs text-slate-600">Please wait</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
   action: keyof typeof actionLabels;
@@ -77,8 +149,11 @@ export default function Dashboard() {
   const { data: updates = [] } = useUpdates();
   const { data: groups = [] } = useGroups();
   const { filter, search, sortField, sortAsc, setFilter, setSearch, setSort, selectedIds, clearSelected } = useAppStore();
-  const bulkActions = useBulkActions();
   const [bulkConfirm, setBulkConfirm] = useState<"start" | "stop" | "restart" | "update" | null>(null);
+  const [bulkProgressAction, setBulkProgressAction] = useState<"start" | "stop" | "restart" | "update" | null>(null);
+  const [bulkProgressItems, setBulkProgressItems] = useState<BulkProgressItem[]>([]);
+  const onProgress = useCallback((items: BulkProgressItem[]) => setBulkProgressItems([...items]), []);
+  const bulkActions = useBulkActions(onProgress);
 
   const updateMap = useMemo(
     () => Object.fromEntries(updates.map((u) => [u.container_id, u])),
@@ -274,10 +349,23 @@ export default function Dashboard() {
           count={selectedIds.size}
           loading={bulkActions.isPending}
           onConfirm={() => {
-            bulkActions.mutate({ ids: Array.from(selectedIds), action: bulkConfirm });
+            const ids = Array.from(selectedIds);
+            const names = ids.map((id) => containers.find((c) => c.id === id)?.name.replace(/^\//, "") ?? id);
+            setBulkProgressAction(bulkConfirm);
+            setBulkProgressItems(ids.map((id, i) => ({ id, name: names[i], status: "pending" })));
+            bulkActions.mutate({ ids, action: bulkConfirm, names });
             setBulkConfirm(null);
           }}
           onCancel={() => setBulkConfirm(null)}
+        />
+      )}
+
+      {/* Bulk progress modal */}
+      {bulkProgressAction && bulkProgressItems.length > 0 && (
+        <BulkProgressModal
+          action={bulkProgressAction}
+          items={bulkProgressItems}
+          onClose={() => { setBulkProgressAction(null); setBulkProgressItems([]); }}
         />
       )}
     </div>
