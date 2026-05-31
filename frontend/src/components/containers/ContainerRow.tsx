@@ -4,13 +4,13 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import {
   Play, Square, RotateCcw, FileText, ArrowUpCircle,
-  RotateCw, Shield, CheckCircle2, XCircle, Minus
+  RotateCw, Shield, CheckCircle2, XCircle, Minus, Settings2, EyeOff
 } from "lucide-react";
 import { useState } from "react";
 import { ConfirmModal } from "../ui/ConfirmModal";
 import { LogsModal } from "../modals/LogsModal";
 import { UpdateResultModal } from "../modals/UpdateResultModal";
-import { useContainerActions } from "../../hooks";
+import { useContainerActions, useContainerSettings, usePatchContainerSettings } from "../../hooks";
 import type { UpdateResult } from "../../types";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../../store/useAppStore";
@@ -49,11 +49,84 @@ function StatusDot({ status }: { status: string }) {
   );
 }
 
-function HealthIcon({ health }: { health: string }) {
+function HealthIcon({ health, status }: { health: string; status: string }) {
+  if (status !== "running") return null; // stale health from stopped containers
   if (health === "healthy") return <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />;
   if (health === "unhealthy") return <XCircle className="h-3.5 w-3.5 text-red-400" />;
   if (health === "starting") return <Minus className="h-3.5 w-3.5 text-yellow-400" />;
   return null;
+}
+
+function statusLabel(status: string): string {
+  if (status === "exited") return "offline";
+  if (status === "dead") return "powered off";
+  if (status === "created") return "created";
+  if (status === "paused") return "paused";
+  if (status === "restarting") return "restarting";
+  return status;
+}
+
+function SettingsModal({ container, onClose }: { container: Container; onClose: () => void }) {
+  const { data: dbSettings } = useContainerSettings(container.name);
+  const patch = usePatchContainerSettings(container.name);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="bg-slate-800 border border-slate-700 rounded-xl p-5 w-80 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-sm font-semibold text-slate-200 mb-4">
+          {container.name.replace(/^\//, "")}
+        </h3>
+        {/* Protected toggle */}
+        <div className="flex items-center justify-between py-2.5 border-b border-slate-700/50">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-amber-400" />
+            <div>
+              <p className="text-xs font-medium text-slate-300">Protected</p>
+              <p className="text-[10px] text-slate-600">Disables write actions</p>
+            </div>
+          </div>
+          <button
+            disabled={patch.isPending}
+            onClick={() => patch.mutate({ protected: !container.protected })}
+            className={clsx(
+              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
+              container.protected ? "bg-blue-600" : "bg-slate-600",
+              patch.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", container.protected ? "translate-x-4" : "translate-x-0")} />
+          </button>
+        </div>
+        {/* Excluded toggle */}
+        <div className="flex items-center justify-between py-2.5">
+          <div className="flex items-center gap-2">
+            <EyeOff className="h-4 w-4 text-slate-400" />
+            <div>
+              <p className="text-xs font-medium text-slate-300">Excluded</p>
+              <p className="text-[10px] text-slate-600">Hides from dashboard</p>
+            </div>
+          </div>
+          <button
+            disabled={patch.isPending}
+            onClick={() => { patch.mutate({ excluded: !(dbSettings?.excluded ?? false) }); onClose(); }}
+            className={clsx(
+              "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
+              (dbSettings?.excluded ?? false) ? "bg-blue-600" : "bg-slate-600",
+              patch.isPending && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200", (dbSettings?.excluded ?? false) ? "translate-x-4" : "translate-x-0")} />
+          </button>
+        </div>
+        <button onClick={onClose} className="mt-3 w-full text-xs text-slate-600 hover:text-slate-400 transition-colors">Close</button>
+      </div>
+    </div>
+  );
 }
 
 type ActionType = "start" | "stop" | "restart" | "update" | "rollback";
@@ -72,6 +145,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   const [confirm, setConfirm] = useState<ActionType | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const { selectedIds, toggleSelected } = useAppStore();
   const isSelected = selectedIds.has(container.id);
 
@@ -83,8 +157,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
     actions.rollback.isPending;
 
   const hasUpdate = updateStatus?.status === "update_available";
-
-  const canAct = container.managed && !container.protected;
+  const canAct = !container.protected;
 
   function handleConfirm() {
     if (!confirm) return;
@@ -133,7 +206,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
             <span className="font-medium text-slate-200 truncate max-w-[160px]">
               {container.name.replace(/^\//, "")}
             </span>
-            <HealthIcon health={container.health} />
+            <HealthIcon health={container.health} status={container.status} />
           </div>
           <div className="flex flex-wrap gap-1 mt-1">
             {container.protected && (
@@ -150,7 +223,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
         </td>
 
         {/* Status */}
-        <td className="px-4 py-3 text-sm text-slate-400">{container.status}</td>
+        <td className="px-4 py-3 text-sm text-slate-400">{statusLabel(container.status)}</td>
 
         {/* Image */}
         <td className="px-4 py-3">
@@ -211,7 +284,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
               <FileText className="h-3.5 w-3.5" />
             </Button>
 
-            {container.managed && container.protected && (
+            {container.protected && (
               <span
                 className="inline-flex items-center gap-1 text-xs text-amber-700 px-1.5 py-1 select-none"
                 title="Container is protected — actions disabled"
@@ -219,6 +292,16 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                 <Shield className="h-3 w-3" />
               </span>
             )}
+
+            {/* Settings gear */}
+            <Button
+              size="sm"
+              variant="ghost"
+              title="Protected / Excluded settings"
+              onClick={() => setShowSettings(true)}
+            >
+              <Settings2 className="h-3.5 w-3.5 text-slate-500" />
+            </Button>
 
             {canAct && (
               <>
@@ -279,6 +362,11 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
           </div>
         </td>
       </tr>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsModal container={container} onClose={() => setShowSettings(false)} />
+      )}
 
       {/* Logs Modal */}
       {showLogs && (

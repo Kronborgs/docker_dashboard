@@ -90,7 +90,7 @@ export default function Dashboard() {
     // Filter
     if (filter === "running") list = list.filter((c) => c.status === "running");
     else if (filter === "stopped") list = list.filter((c) => c.status !== "running");
-    else if (filter === "unhealthy") list = list.filter((c) => c.health === "unhealthy");
+    else if (filter === "unhealthy") list = list.filter((c) => c.health === "unhealthy" && c.status === "running");
     else if (filter === "protected") list = list.filter((c) => c.protected);
     else if (filter === "updates_available")
       list = list.filter((c) => updateMap[c.id]?.status === "update_available");

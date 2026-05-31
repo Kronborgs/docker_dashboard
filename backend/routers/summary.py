@@ -47,7 +47,7 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
             protected += 1
 
         health = (c.attrs.get("State", {}).get("Health", {}) or {}).get("Status", "")
-        if health == "unhealthy":
+        if health == "unhealthy" and status == "running":
             unhealthy += 1
 
     # label-excluded count comes from docker_service; DB-excluded adds on top
