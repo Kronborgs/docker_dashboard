@@ -99,7 +99,8 @@ export function ContainerTable({ containers, updateStatuses, groups }: Container
     for (const grp of groups) {
       const members = containers.filter((c) => c.group_id === grp.id);
       if (members.length === 0) continue;
-      groupedIds.add(...members.map((c) => c.id));
+      const memberIds = members.map((c) => c.id);
+      for (const id of memberIds) groupedIds.add(id);
       const isCollapsed = collapsed.has(grp.id);
       rows.push(
         <GroupHeaderRow
