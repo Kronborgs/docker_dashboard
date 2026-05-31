@@ -8,6 +8,7 @@ import type {
   UpdateResult,
   Backup,
   Summary,
+  ContainerSettings,
 } from "../types";
 
 const api = axios.create({
@@ -87,3 +88,19 @@ export const fetchAllEvents = (limit = 200): Promise<ContainerEvent[]> =>
   api
     .get<ContainerEvent[]>("/events", { params: { limit } })
     .then((r) => r.data);
+
+// Settings
+export const fetchAllSettings = (): Promise<ContainerSettings[]> =>
+  api.get<ContainerSettings[]>("/settings").then((r) => r.data);
+
+export const fetchContainerSettings = (name: string): Promise<ContainerSettings> =>
+  api.get<ContainerSettings>(`/settings/${encodeURIComponent(name)}`).then((r) => r.data);
+
+export const patchContainerSettings = (
+  name: string,
+  patch: Partial<Pick<ContainerSettings, "protected" | "excluded">>
+): Promise<ContainerSettings> =>
+  api.patch<ContainerSettings>(`/settings/${encodeURIComponent(name)}`, patch).then((r) => r.data);
+
+export const deleteContainerSettings = (name: string): Promise<void> =>
+  api.delete(`/settings/${encodeURIComponent(name)}`).then(() => undefined);

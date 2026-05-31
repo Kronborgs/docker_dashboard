@@ -7,10 +7,13 @@ from services.update_service import check_update_for_image
 from services.backup_service import create_backup
 from services.recreate_service import recreate_container
 from database.engine import AsyncSessionLocal
-from database.models import UpdateHistory, ContainerEvent
+from database.models import UpdateHistory, ContainerEvent, ContainerSettings
+from sqlalchemy import select
 import json
 
 router = APIRouter(prefix="/api", tags=["updates"])
+
+LABEL_PROTECTED = "com.kronborg.dashboard.protected"
 
 
 @router.get("/updates", response_model=List[UpdateStatusOut])
@@ -61,7 +64,18 @@ async def update_container(
     container.reload()
 
     labels = container.labels or {}
-    protected = str(labels.get("com.kronborg.dashboard.protected", "false")).lower() == "true"
+    label_protected = str(labels.get(LABEL_PROTECTED, "false")).lower() == "true"
+
+    # Check DB settings (DB wins over label)
+    async with AsyncSessionLocal() as _db:
+        result = await _db.execute(
+            select(ContainerSettings).where(ContainerSettings.container_name == container.name)
+        )
+        row = result.scalar_one_or_none()
+    if row is not None and row.protected is not None:
+        protected = row.protected
+    else:
+        protected = label_protected
 
     if protected:
         raise HTTPException(status_code=403, detail="Container is protected and cannot be updated.")

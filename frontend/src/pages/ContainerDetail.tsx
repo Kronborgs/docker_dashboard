@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { ArrowLeft, RefreshCw, Play, Square, RotateCcw, ArrowUpCircle, RotateCw, FileText, Shield } from "lucide-react";
+import { ArrowLeft, RefreshCw, Play, Square, RotateCcw, ArrowUpCircle, RotateCw, FileText, Shield, EyeOff } from "lucide-react";
 import {
   useContainer, useStatsHistory, useContainerEvents,
   useContainerBackups, useContainerActions, useUpdates,
+  useContainerSettings, usePatchContainerSettings,
 } from "../hooks";
 import { StatsChart } from "../components/charts/StatsChart";
 import { Badge } from "../components/ui/Badge";
@@ -27,6 +28,50 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+interface SettingToggleProps {
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  value: boolean;
+  fromLabel: boolean;
+  activeColor: string;
+  onToggle: (v: boolean) => void;
+  loading: boolean;
+}
+
+function SettingToggle({ label, description, icon, value, fromLabel, activeColor, onToggle, loading }: SettingToggleProps) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-slate-700/50 last:border-0">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={clsx("p-1.5 rounded", value ? activeColor : "bg-slate-700/50 text-slate-500")}>{icon}</span>
+        <div>
+          <p className="text-xs font-medium text-slate-300">{label}</p>
+          <p className="text-[10px] text-slate-600">{description}</p>
+        </div>
+        {fromLabel && (
+          <span className="text-[10px] text-slate-600 ml-1">(via label)</span>
+        )}
+      </div>
+      <button
+        disabled={loading}
+        onClick={() => onToggle(!value)}
+        className={clsx(
+          "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
+          value ? "bg-blue-600" : "bg-slate-600",
+          loading && "opacity-50 cursor-not-allowed"
+        )}
+      >
+        <span
+          className={clsx(
+            "inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200",
+            value ? "translate-x-4" : "translate-x-0"
+          )}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function ContainerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -36,6 +81,8 @@ export default function ContainerDetail() {
   const { data: backups = [] } = useContainerBackups(container?.name ?? "");
   const { data: updates = [] } = useUpdates();
   const actions = useContainerActions();
+  const { data: dbSettings } = useContainerSettings(container?.name ?? "");
+  const patchSettings = usePatchContainerSettings(container?.name ?? "");
 
   const [chartMetric, setChartMetric] = useState<ChartMetric>("cpu");
   const [confirm, setConfirm] = useState<ActionType | null>(null);
@@ -187,6 +234,31 @@ export default function ContainerDetail() {
               ))}
             </section>
           )}
+
+          {/* Dashboard Settings */}
+          <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Dashboard Settings</h2>
+            <SettingToggle
+              label="Protected"
+              description="Disables start / stop / restart / update"
+              icon={<Shield className="h-3.5 w-3.5" />}
+              value={container.protected}
+              fromLabel={container.protected && dbSettings?.protected == null}
+              activeColor="bg-amber-900/40 text-amber-400 border-amber-700/60"
+              onToggle={(v) => patchSettings.mutate({ protected: v })}
+              loading={patchSettings.isPending}
+            />
+            <SettingToggle
+              label="Excluded"
+              description="Hides container from the dashboard"
+              icon={<EyeOff className="h-3.5 w-3.5" />}
+              value={dbSettings?.excluded ?? false}
+              fromLabel={false}
+              activeColor="bg-slate-700 text-slate-300 border-slate-600"
+              onToggle={(v) => patchSettings.mutate({ excluded: v })}
+              loading={patchSettings.isPending}
+            />
+          </section>
         </div>
 
         {/* Right col: charts + events */}

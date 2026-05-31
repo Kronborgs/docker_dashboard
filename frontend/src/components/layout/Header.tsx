@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, History, Database, RefreshCw } from "lucide-react";
+import { LayoutDashboard, History, Database, RefreshCw, Settings } from "lucide-react";
 import { clsx } from "clsx";
 import { useSummary } from "../../hooks";
 
@@ -11,6 +11,7 @@ export function Header() {
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/history", label: "History", icon: History },
     { to: "/backups", label: "Backups", icon: Database },
+    { to: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (

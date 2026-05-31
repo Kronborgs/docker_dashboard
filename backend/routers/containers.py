@@ -5,7 +5,7 @@ from typing import List, Optional
 import asyncio
 
 from database.engine import get_db
-from database.models import ContainerStats, ContainerEvent
+from database.models import ContainerStats, ContainerEvent, ContainerSettings
 from schemas.container import (
     ContainerOut, ContainerDetail, LogsOut,
     StatsHistoryPoint, ContainerEventOut,
@@ -14,16 +14,58 @@ from services import docker_service as ds
 
 router = APIRouter(prefix="/api/containers", tags=["containers"])
 
+LABEL_PROTECTED = "com.kronborg.dashboard.protected"
+
+
+async def _load_settings_map(db: AsyncSession) -> dict:
+    """Return {container_name: ContainerSettings row} for all DB overrides."""
+    result = await db.execute(select(ContainerSettings))
+    return {r.container_name: r for r in result.scalars().all()}
+
+
+def _effective_protected(container_name: str, label_protected: bool, settings_map: dict) -> bool:
+    """DB setting wins over Docker label. None in DB → use label."""
+    row = settings_map.get(container_name)
+    if row is not None and row.protected is not None:
+        return row.protected
+    return label_protected
+
+
+async def _assert_modifiable(container_name: str, label_protected: bool, db: AsyncSession) -> None:
+    """Raise 403 if the container is effectively protected."""
+    result = await db.execute(
+        select(ContainerSettings).where(ContainerSettings.container_name == container_name)
+    )
+    row = result.scalar_one_or_none()
+    if row is not None and row.protected is not None:
+        protected = row.protected
+    else:
+        protected = label_protected
+    if protected:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Container '{container_name}' is protected and cannot be modified.",
+        )
+
 
 @router.get("", response_model=List[ContainerOut])
-async def list_containers():
+async def list_containers(db: AsyncSession = Depends(get_db)):
     containers = ds.list_containers()
+    settings_map = await _load_settings_map(db)
 
     async def _summarize(c):
         try:
             await asyncio.to_thread(c.reload)
+            # Check DB exclusion override
+            row = settings_map.get(c.name)
+            if row is not None and row.excluded is True:
+                return None
             stats = await asyncio.to_thread(ds.get_live_stats, c) if c.status == "running" else None
-            return ds.get_container_summary(c, stats)
+            summary = ds.get_container_summary(c, stats)
+            # Merge DB protected override
+            if row is not None and row.protected is not None:
+                summary["protected"] = row.protected
+            return summary
         except Exception:
             return None
 
@@ -32,11 +74,19 @@ async def list_containers():
 
 
 @router.get("/{container_id}", response_model=ContainerDetail)
-async def get_container(container_id: str):
+async def get_container(container_id: str, db: AsyncSession = Depends(get_db)):
     container = ds.get_container(container_id)
     await asyncio.to_thread(container.reload)
     stats = await asyncio.to_thread(ds.get_live_stats, container) if container.status == "running" else None
-    return ds.get_container_detail(container, stats)
+    detail = ds.get_container_detail(container, stats)
+    # Merge DB protected override
+    result = await db.execute(
+        select(ContainerSettings).where(ContainerSettings.container_name == container.name)
+    )
+    row = result.scalar_one_or_none()
+    if row is not None and row.protected is not None:
+        detail["protected"] = row.protected
+    return detail
 
 
 @router.get("/{container_id}/logs", response_model=LogsOut)
@@ -113,18 +163,27 @@ async def get_container_events(
 
 
 @router.post("/{container_id}/start")
-async def start_container(container_id: str):
+async def start_container(container_id: str, db: AsyncSession = Depends(get_db)):
+    container = ds.get_container(container_id)
+    label_protected = str((container.labels or {}).get(LABEL_PROTECTED, "false")).lower() == "true"
+    await _assert_modifiable(container.name, label_protected, db)
     ds.start_container(container_id)
     return {"status": "started", "container_id": container_id}
 
 
 @router.post("/{container_id}/stop")
-async def stop_container(container_id: str):
+async def stop_container(container_id: str, db: AsyncSession = Depends(get_db)):
+    container = ds.get_container(container_id)
+    label_protected = str((container.labels or {}).get(LABEL_PROTECTED, "false")).lower() == "true"
+    await _assert_modifiable(container.name, label_protected, db)
     ds.stop_container(container_id)
     return {"status": "stopped", "container_id": container_id}
 
 
 @router.post("/{container_id}/restart")
-async def restart_container(container_id: str):
+async def restart_container(container_id: str, db: AsyncSession = Depends(get_db)):
+    container = ds.get_container(container_id)
+    label_protected = str((container.labels or {}).get(LABEL_PROTECTED, "false")).lower() == "true"
+    await _assert_modifiable(container.name, label_protected, db)
     ds.restart_container(container_id)
     return {"status": "restarted", "container_id": container_id}

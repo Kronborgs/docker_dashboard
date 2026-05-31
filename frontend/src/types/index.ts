@@ -122,6 +122,12 @@ export type FilterType =
   | "updates_available"
   | "unhealthy";
 
+export interface ContainerSettings {
+  container_name: string;
+  protected: boolean | null;
+  excluded: boolean | null;
+}
+
 export type SortField =
   | "name"
   | "cpu_percent"

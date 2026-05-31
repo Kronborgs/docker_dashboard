@@ -58,3 +58,12 @@ class Backup(Base):
     inspect_json = Column(Text, nullable=False)
     trigger = Column(String(64))   # manual/pre_update/pre_rollback
     created_at = Column(DateTime, server_default=func.now(), nullable=False, index=True)
+
+
+class ContainerSettings(Base):
+    __tablename__ = "container_settings"
+
+    container_name = Column(String(256), primary_key=True)
+    protected = Column(Boolean, nullable=True)   # None = defer to Docker label
+    excluded = Column(Boolean, nullable=True)    # None = defer to Docker label
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -264,7 +264,6 @@ def get_logs(container_id: str, tail: int = 200) -> str:
 
 def start_container(container_id: str) -> None:
     container = get_container(container_id)
-    _assert_not_protected(container)
     try:
         container.start()
     except APIError as exc:
@@ -273,7 +272,6 @@ def start_container(container_id: str) -> None:
 
 def stop_container(container_id: str) -> None:
     container = get_container(container_id)
-    _assert_not_protected(container)
     try:
         container.stop(timeout=30)
     except APIError as exc:
@@ -282,7 +280,6 @@ def stop_container(container_id: str) -> None:
 
 def restart_container(container_id: str) -> None:
     container = get_container(container_id)
-    _assert_not_protected(container)
     try:
         container.restart(timeout=30)
     except APIError as exc:
@@ -302,7 +299,6 @@ def pull_image(image_ref: str) -> str:
 def remove_container(container_id: str) -> None:
     """Remove container (not volumes). Only for non-protected."""
     container = get_container(container_id)
-    _assert_not_protected(container)
     try:
         container.remove(force=True, v=False)
     except APIError as exc:

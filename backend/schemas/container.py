@@ -123,3 +123,17 @@ class SummaryOut(BaseModel):
     updates_available: int
     paused: int
     unhealthy: int
+
+
+class ContainerSettingsOut(BaseModel):
+    container_name: str
+    protected: Optional[bool]
+    excluded: Optional[bool]
+
+    class Config:
+        from_attributes = True
+
+
+class ContainerSettingsPatch(BaseModel):
+    protected: Optional[bool] = None
+    excluded: Optional[bool] = None

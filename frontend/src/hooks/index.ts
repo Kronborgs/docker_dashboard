@@ -15,8 +15,13 @@ import {
   updateContainer,
   rollbackContainer,
   fetchAllEvents,
+  fetchAllSettings,
+  fetchContainerSettings,
+  patchContainerSettings,
+  deleteContainerSettings,
 } from "../api/client";
 import { useAppStore } from "../store/useAppStore";
+import type { ContainerSettings } from "../types";
 
 export function useContainers() {
   return useQuery({
@@ -153,4 +158,49 @@ export function useContainerActions() {
   });
 
   return { start, stop, restart, update, rollback };
+}
+
+export function useAllSettings() {
+  return useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchAllSettings,
+  });
+}
+
+export function useContainerSettings(name: string) {
+  return useQuery({
+    queryKey: ["settings", name],
+    queryFn: () => fetchContainerSettings(name),
+    enabled: !!name,
+  });
+}
+
+export function usePatchContainerSettings(name: string) {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: (patch: Partial<Pick<ContainerSettings, "protected" | "excluded">>) =>
+      patchContainerSettings(name, patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["settings", name] });
+      qc.invalidateQueries({ queryKey: ["containers"] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
+    },
+    onError: (e: Error) => addToast("error", e.message),
+  });
+}
+
+export function useDeleteContainerSettings() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: (name: string) => deleteContainerSettings(name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["containers"] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
+    },
+    onError: (e: Error) => addToast("error", e.message),
+  });
 }
