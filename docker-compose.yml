@@ -1,0 +1,32 @@
+services:
+  docker-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: docker-dashboard
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/user/appdata/docker-dashboard:/config
+    environment:
+      # Optional: configure stats collection interval (seconds)
+      - STATS_INTERVAL_SECONDS=30
+      # Optional: set to enable basic auth (leave empty to disable)
+      # - DASHBOARD_USERNAME=admin
+      # - DASHBOARD_PASSWORD=changeme
+      # Optional: private registry support
+      # - PRIVATE_REGISTRY_URL=registry.example.com
+      # - PRIVATE_REGISTRY_TOKEN=your-token-here
+    labels:
+      # Protect the dashboard from being stopped/updated by itself
+      - "com.kronborg.dashboard.protected=true"
+      # Uncomment to hide the dashboard from its own UI:
+      # - "com.kronborg.dashboard.excluded=true"
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
