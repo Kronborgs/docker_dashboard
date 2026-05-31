@@ -18,20 +18,19 @@ logger = logging.getLogger(__name__)
 
 async def _collect_once():
     try:
-        containers = list_containers()
+        containers = await asyncio.to_thread(list_containers)
     except Exception as exc:
         logger.warning(f"Stats collect: failed to list containers: {exc}")
         return
 
-    rows = []
-    for container in containers:
+    async def _collect_one(container):
         if container.status != "running":
-            continue
+            return None
         try:
-            container.reload()
-            stats = get_live_stats(container)
+            await asyncio.to_thread(container.reload)
+            stats = await asyncio.to_thread(get_live_stats, container)
             if not stats:
-                continue
+                return None
 
             cpu = _calc_cpu_percent(stats)
             mem_usage = stats.get("memory_stats", {}).get("usage", 0)
@@ -43,23 +42,25 @@ async def _collect_once():
             blk_r, blk_w = _calc_block(stats)
             pids = stats.get("pids_stats", {}).get("current", 0)
 
-            rows.append(
-                ContainerStats(
-                    container_id=container.id,
-                    container_name=container.name,
-                    cpu_percent=round(cpu, 2),
-                    mem_usage_mb=round(mem_usage_mb, 2),
-                    mem_limit_mb=round(mem_limit_mb, 2),
-                    mem_percent=round(mem_percent, 2),
-                    net_rx_bytes=net_rx,
-                    net_tx_bytes=net_tx,
-                    block_read_bytes=blk_r,
-                    block_write_bytes=blk_w,
-                    pids=pids or 0,
-                )
+            return ContainerStats(
+                container_id=container.id,
+                container_name=container.name,
+                cpu_percent=round(cpu, 2),
+                mem_usage_mb=round(mem_usage_mb, 2),
+                mem_limit_mb=round(mem_limit_mb, 2),
+                mem_percent=round(mem_percent, 2),
+                net_rx_bytes=net_rx,
+                net_tx_bytes=net_tx,
+                block_read_bytes=blk_r,
+                block_write_bytes=blk_w,
+                pids=pids or 0,
             )
         except Exception as exc:
             logger.debug(f"Stats collect error for {container.name}: {exc}")
+            return None
+
+    results = await asyncio.gather(*[_collect_one(c) for c in containers])
+    rows = [r for r in results if r is not None]
 
     if rows:
         async with AsyncSessionLocal() as session:

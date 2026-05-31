@@ -18,22 +18,24 @@ router = APIRouter(prefix="/api/containers", tags=["containers"])
 @router.get("", response_model=List[ContainerOut])
 async def list_containers():
     containers = ds.list_containers()
-    result = []
-    for c in containers:
+
+    async def _summarize(c):
         try:
-            c.reload()
-            stats = ds.get_live_stats(c) if c.status == "running" else None
-            result.append(ds.get_container_summary(c, stats))
+            await asyncio.to_thread(c.reload)
+            stats = await asyncio.to_thread(ds.get_live_stats, c) if c.status == "running" else None
+            return ds.get_container_summary(c, stats)
         except Exception:
-            pass
-    return result
+            return None
+
+    summaries = await asyncio.gather(*[_summarize(c) for c in containers])
+    return [s for s in summaries if s is not None]
 
 
 @router.get("/{container_id}", response_model=ContainerDetail)
 async def get_container(container_id: str):
     container = ds.get_container(container_id)
-    container.reload()
-    stats = ds.get_live_stats(container) if container.status == "running" else None
+    await asyncio.to_thread(container.reload)
+    stats = await asyncio.to_thread(ds.get_live_stats, container) if container.status == "running" else None
     return ds.get_container_detail(container, stats)
 
 
