@@ -61,15 +61,52 @@ async def _get_dockerhub_token(repo: str) -> str:
 
 
 async def _get_ghcr_token(repo: str) -> Optional[str]:
-    # Try anonymous token
-    url = f"https://ghcr.io/token?scope=repository:{repo}:pull"
+    """
+    ghcr.io requires an anonymous OAuth2 token even for public images.
+    The correct endpoint is https://ghcr.io/token with service=ghcr.io.
+    If that fails, try the www-authenticate challenge flow by hitting the
+    manifest endpoint first and parsing the Bearer realm from the 401.
+    """
+    # Primary: standard ghcr.io anonymous token endpoint
+    url = f"https://ghcr.io/token?service=ghcr.io&scope=repository:{repo}:pull"
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             r = await client.get(url)
             if r.status_code == 200:
-                return r.json().get("token")
+                data = r.json()
+                token = data.get("token") or data.get("access_token")
+                if token:
+                    return token
     except Exception:
         pass
+
+    # Fallback: hit the manifest endpoint and parse WWW-Authenticate header
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            probe = await client.get(
+                f"https://ghcr.io/v2/{repo}/manifests/latest",
+                timeout=_TIMEOUT,
+            )
+            if probe.status_code == 401:
+                www_auth = probe.headers.get("www-authenticate", "")
+                realm_match = re.search(r'realm="([^"]+)"', www_auth)
+                service_match = re.search(r'service="([^"]+)"', www_auth)
+                scope_match = re.search(r'scope="([^"]+)"', www_auth)
+                if realm_match:
+                    params = {}
+                    if service_match:
+                        params["service"] = service_match.group(1)
+                    if scope_match:
+                        params["scope"] = scope_match.group(1)
+                    else:
+                        params["scope"] = f"repository:{repo}:pull"
+                    r2 = await client.get(realm_match.group(1), params=params, timeout=_TIMEOUT)
+                    if r2.status_code == 200:
+                        data = r2.json()
+                        return data.get("token") or data.get("access_token")
+    except Exception:
+        pass
+
     return None
 
 
