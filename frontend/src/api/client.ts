@@ -67,11 +67,14 @@ export const updateContainer = (
   api
     .post<UpdateResult>(`/containers/${id}/update`, null, {
       params: { dry_run },
+      timeout: 300_000, // 5 min — image pulls can be slow
     })
     .then((r) => r.data);
 
 export const rollbackContainer = (id: string): Promise<UpdateResult> =>
-  api.post<UpdateResult>(`/containers/${id}/rollback`).then((r) => r.data);
+  api.post<UpdateResult>(`/containers/${id}/rollback`, null, {
+    timeout: 300_000,
+  }).then((r) => r.data);
 
 // Backups
 export const fetchBackups = (): Promise<Backup[]> =>
