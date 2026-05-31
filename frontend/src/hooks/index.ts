@@ -328,10 +328,30 @@ export function useSetGroupMembers() {
   const addToast = useAppStore((s) => s.addToast);
   return useMutation({
     mutationFn: ({ id, names }: { id: number; names: string[] }) => setGroupMembers(id, names),
-    onSuccess: () => {
+    onMutate: async ({ id, names }) => {
+      // Cancel in-flight refetches so they don't overwrite our optimistic data
+      await qc.cancelQueries({ queryKey: ["containers"] });
+      const prev = qc.getQueryData(["containers"]);
+      qc.setQueryData(["containers"], (old: any[]) => {
+        if (!old) return old;
+        const nameSet = new Set(names);
+        return old.map((c) => {
+          const name = c.name.replace(/^\//, "");
+          const inNew = nameSet.has(c.name) || nameSet.has(name);
+          if (inNew) return { ...c, group_id: id };
+          if (c.group_id === id) return { ...c, group_id: null };
+          return c;
+        });
+      });
+      return { prev };
+    },
+    onError: (e: Error, _vars, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(["containers"], ctx.prev);
+      addToast("error", e.message);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["groups"] });
       qc.invalidateQueries({ queryKey: ["containers"] });
     },
-    onError: (e: Error) => addToast("error", e.message),
   });
 }

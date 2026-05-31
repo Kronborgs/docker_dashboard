@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { FilterType, SortField, Toast } from "../types";
+import type { Lang } from "../i18n/translations";
 
 interface AppState {
   filter: FilterType;
@@ -8,6 +9,7 @@ interface AppState {
   sortAsc: boolean;
   toasts: Toast[];
   selectedIds: Set<string>;
+  language: Lang;
   setFilter: (f: FilterType) => void;
   setSearch: (s: string) => void;
   setSort: (field: SortField) => void;
@@ -16,6 +18,7 @@ interface AppState {
   toggleSelected: (id: string) => void;
   selectAll: (ids: string[]) => void;
   clearSelected: () => void;
+  setLanguage: (lang: Lang) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -25,6 +28,7 @@ export const useAppStore = create<AppState>((set) => ({
   sortAsc: true,
   toasts: [],
   selectedIds: new Set(),
+  language: (localStorage.getItem("dd_lang") as Lang) ?? "da",
 
   setFilter: (filter) => set({ filter }),
   setSearch: (search) => set({ search }),
@@ -50,4 +54,8 @@ export const useAppStore = create<AppState>((set) => ({
     }),
   selectAll: (ids) => set({ selectedIds: new Set(ids) }),
   clearSelected: () => set({ selectedIds: new Set() }),
+  setLanguage: (lang) => {
+    localStorage.setItem("dd_lang", lang);
+    set({ language: lang });
+  },
 }));

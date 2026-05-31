@@ -3,6 +3,7 @@ import { useContainers, useGroups, useCreateGroup, useUpdateGroup, useDeleteGrou
 import { Folder, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { clsx } from "clsx";
 import type { ContainerGroup } from "../types";
+import { useLang } from "../i18n/translations";
 
 const COLORS = [
   { value: "slate",  label: "Gray",   cls: "bg-slate-500" },
@@ -49,6 +50,7 @@ function GroupCard({ group, containerNames }: { group: ContainerGroup; container
   const setMembers = useSetGroupMembers();
   const deleteGroup = useDeleteGroup();
   const updateGroup = useUpdateGroup();
+  const { t } = useLang();
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(group.name);
@@ -91,7 +93,7 @@ function GroupCard({ group, containerNames }: { group: ContainerGroup; container
           <div className="flex items-center gap-2">
             <Folder className={clsx("h-4 w-4", iconColor)} />
             <span className="font-semibold text-slate-200 text-sm">{group.name}</span>
-            <span className="text-xs text-slate-600">{containerNames.length} container{containerNames.length !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-slate-600">{t.containers_count(containerNames.length)}</span>
           </div>
         )}
         {!editing && (
@@ -99,24 +101,24 @@ function GroupCard({ group, containerNames }: { group: ContainerGroup; container
             <button
               onClick={() => { setEditName(group.name); setEditColor(group.color ?? "slate"); setEditing(true); }}
               className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700 transition-colors"
-              title="Rename"
+              title={t.groups_rename_tip}
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
             {confirmDelete ? (
               <div className="flex items-center gap-1 text-xs">
-                <span className="text-red-400">Delete?</span>
+                <span className="text-red-400">{t.groups_delete_confirm}</span>
                 <button
                   onClick={() => { deleteGroup.mutate(group.id); setConfirmDelete(false); }}
                   className="text-red-400 hover:text-red-300 font-semibold px-1"
-                >Yes</button>
-                <button onClick={() => setConfirmDelete(false)} className="text-slate-500 hover:text-slate-300 px-1">No</button>
+                >{t.groups_delete_yes}</button>
+                <button onClick={() => setConfirmDelete(false)} className="text-slate-500 hover:text-slate-300 px-1">{t.groups_delete_no}</button>
               </div>
             ) : (
               <button
                 onClick={() => setConfirmDelete(true)}
                 className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-700 transition-colors"
-                title="Delete group"
+                title={t.groups_delete_tip}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -143,10 +145,10 @@ function GroupCard({ group, containerNames }: { group: ContainerGroup; container
               className={clsx(
                 "flex items-center gap-2 px-3 py-2 rounded-lg border text-xs text-left transition-colors",
                 inGroup
-                  ? "bg-blue-900/30 border-blue-600 text-blue-300"
+                  ? "bg-blue-600/50 border-blue-400 text-white font-medium shadow shadow-blue-900/40"
                   : inOtherGroup
-                    ? "bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed opacity-50"
-                    : "bg-slate-700/50 border-slate-600/50 text-slate-300 hover:border-slate-500 hover:bg-slate-700"
+                    ? "bg-slate-800 border-slate-700 text-slate-600 cursor-not-allowed opacity-40"
+                    : "bg-slate-700/50 border-slate-600/50 text-slate-300 hover:border-slate-400 hover:bg-slate-700"
               )}
             >
               <span
@@ -169,6 +171,7 @@ export default function Groups() {
   const { data: groups = [], isLoading } = useGroups();
   const { data: containers = [] } = useContainers();
   const createGroup = useCreateGroup();
+  const { t } = useLang();
 
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("slate");
@@ -195,29 +198,58 @@ export default function Groups() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-100">Container Groups</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Organise containers into folders. A container can only belong to one group.</p>
+          <h1 className="text-xl font-bold text-slate-100">{t.groups_title}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{t.groups_desc}</p>
         </div>
       </div>
 
       {/* Create new group */}
       <form onSubmit={handleCreate} className="bg-slate-800 border border-slate-700/60 rounded-xl p-5 flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-slate-500 font-medium">Group name</label>
+          <label className="text-xs text-slate-500 font-medium">{t.groups_name_label}</label>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="e.g. sharedrive"
+            placeholder={t.groups_name_placeholder}
             className="bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 w-52"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-slate-500 font-medium">Color</label>
+          <label className="text-xs text-slate-500 font-medium">{t.groups_color_label}</label>
           <ColorPicker value={newColor} onChange={setNewColor} />
         </div>
         <button
           type="submit"
           disabled={!newName.trim() || createGroup.isPending}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          {t.groups_create}
+        </button>
+      </form>
+
+      {/* Existing groups */}
+      {isLoading ? (
+        <p className="text-slate-500 text-sm">{t.loading}</p>
+      ) : groups.length === 0 ? (
+        <div className="text-center py-12 text-slate-600">
+          <Folder className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p>{t.groups_empty}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groups.map((grp) => (
+            <GroupCard
+              key={grp.id}
+              group={grp}
+              containerNames={memberMap[grp.id] ?? []}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Plus className="h-4 w-4" />

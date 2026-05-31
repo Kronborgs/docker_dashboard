@@ -1,18 +1,20 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, History, Database, RefreshCw, Settings, Folder } from "lucide-react";
+import { LayoutDashboard, History, Database, Settings, Folder, Globe } from "lucide-react";
 import { clsx } from "clsx";
 import { useSummary } from "../../hooks";
+import { useLang } from "../../i18n/translations";
 
 export function Header() {
   const location = useLocation();
   const { data: summary } = useSummary();
+  const { t, lang, setLanguage } = useLang();
 
   const nav = [
-    { to: "/", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/groups", label: "Groups", icon: Folder },
-    { to: "/history", label: "History", icon: History },
-    { to: "/backups", label: "Backups", icon: Database },
-    { to: "/settings", label: "Settings", icon: Settings },
+    { to: "/", label: t.nav_dashboard, icon: LayoutDashboard },
+    { to: "/groups", label: t.nav_groups, icon: Folder },
+    { to: "/history", label: t.nav_history, icon: History },
+    { to: "/backups", label: t.nav_backups, icon: Database },
+    { to: "/settings", label: t.nav_settings, icon: Settings },
   ];
 
   return (
@@ -43,20 +45,32 @@ export function Header() {
           ))}
         </nav>
 
-        {/* Summary pills */}
-        {summary && (
-          <div className="hidden lg:flex items-center gap-3 text-xs">
-            <span className="text-slate-500">
-              <span className="text-green-400 font-semibold">{summary.running}</span>/{summary.total} running
-            </span>
-            {summary.unhealthy > 0 && (
-              <span className="text-red-400 font-semibold">{summary.unhealthy} unhealthy</span>
-            )}
-            {summary.excluded > 0 && (
-              <span className="text-slate-500">{summary.excluded} excluded</span>
-            )}
-          </div>
-        )}
+        {/* Right side: summary pills + language toggle */}
+        <div className="flex items-center gap-3">
+          {summary && (
+            <div className="hidden lg:flex items-center gap-3 text-xs">
+              <span className="text-slate-500">
+                <span className="text-green-400 font-semibold">{summary.running}</span>/{summary.total} {t.header_running_pill}
+              </span>
+              {summary.unhealthy > 0 && (
+                <span className="text-red-400 font-semibold">{summary.unhealthy} {t.header_unhealthy_pill}</span>
+              )}
+              {summary.excluded > 0 && (
+                <span className="text-slate-500">{summary.excluded} {t.header_excluded_pill}</span>
+              )}
+            </div>
+          )}
+
+          {/* Language toggle */}
+          <button
+            onClick={() => setLanguage(lang === "en" ? "da" : "en")}
+            title={t.lang_tooltip}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700 border border-slate-700 transition-colors"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            {t.lang_switch}
+          </button>
+        </div>
       </div>
     </header>
   );

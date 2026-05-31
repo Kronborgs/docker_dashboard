@@ -12,16 +12,19 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import type { Container, FilterType } from "../types";
+import { useLang } from "../i18n/translations";
 
-const actionLabels = { start: "Start", stop: "Stop", restart: "Restart", update: "Update" } as const;
+type BulkActionKey = "start" | "stop" | "restart" | "update";
 
 function BulkProgressModal({
   action, items, onClose,
 }: {
-  action: keyof typeof actionLabels;
+  action: BulkActionKey;
   items: BulkProgressItem[];
   onClose: () => void;
 }) {
+  const { t } = useLang();
+  const actionLabel = { start: t.bulk_start, stop: t.bulk_stop, restart: t.bulk_restart, update: t.bulk_update }[action];
   const done = items.every((i) => i.status === "ok" || i.status === "error");
   const ok = items.filter((i) => i.status === "ok").length;
   const err = items.filter((i) => i.status === "error").length;
@@ -30,7 +33,7 @@ function BulkProgressModal({
       <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-700 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-200">
-            Bulk {actionLabels[action]}
+            {t.bulk_progress_header(actionLabel)}
           </h2>
           {done && (
             <button onClick={onClose} className="text-slate-500 hover:text-slate-300">
@@ -57,7 +60,7 @@ function BulkProgressModal({
                 item.status === "error" ? "text-red-400" :
                 item.status === "running" ? "text-blue-400" : "text-slate-600"
               )}>
-                {item.status === "running" ? "running…" : item.status}
+                {item.status === "running" ? t.bulk_progress_running : item.status}
               </span>
             </div>
           ))}
@@ -65,18 +68,18 @@ function BulkProgressModal({
         <div className="px-5 py-3 border-t border-slate-700 flex items-center justify-between">
           {done ? (
             <>
-              <span className="text-xs text-slate-500">{ok} ok{err > 0 ? `, ${err} failed` : ""}</span>
+              <span className="text-xs text-slate-500">{t.bulk_progress_result(ok, err)}</span>
               <button
                 onClick={onClose}
                 className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs rounded-lg transition-colors"
               >
-                Close
+                {t.bulk_progress_close}
               </button>
             </>
           ) : (
             <>
-              <span className="text-xs text-slate-500">Processing… {items.filter(i => i.status === "ok" || i.status === "error").length}/{items.length}</span>
-              <span className="text-xs text-slate-600">Please wait</span>
+              <span className="text-xs text-slate-500">{t.bulk_progress_processing(items.filter(i => i.status === "ok" || i.status === "error").length, items.length)}</span>
+              <span className="text-xs text-slate-600">{t.bulk_progress_please_wait}</span>
             </>
           )}
         </div>
@@ -86,18 +89,20 @@ function BulkProgressModal({
 }
 
 function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
-  action: keyof typeof actionLabels;
+  action: BulkActionKey;
   count: number;
   loading: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useLang();
+  const actionLabel = { start: t.bulk_start, stop: t.bulk_stop, restart: t.bulk_restart, update: t.bulk_update }[action];
   return (
     <ConfirmModal
       open
-      title={`${actionLabels[action]} ${count} container(s)?`}
-      description={`This will ${action} all ${count} selected containers in sequence.${action === "update" ? " Protected containers will be skipped." : ""}`}
-      confirmLabel={actionLabels[action]}
+      title={t.bulk_confirm_title(actionLabel, count)}
+      description={t.bulk_confirm_desc(action, count)}
+      confirmLabel={actionLabel}
       variant={["stop", "update"].includes(action) ? "danger" : "primary"}
       loading={loading}
       onConfirm={onConfirm}
@@ -106,13 +111,9 @@ function BulkConfirmModal({ action, count, loading, onConfirm, onCancel }: {
   );
 }
 
-const filters: { value: FilterType; label: string; title: string }[] = [
-  { value: "all",              label: "All",       title: "Vis alle containere" },
-  { value: "running",          label: "Running",   title: "Vis kun containere der kører" },
-  { value: "stopped",          label: "Offline",   title: "Vis kun stoppede / offline containere" },
-  { value: "protected",        label: "Protected", title: "Vis kun containere der er beskyttet mod ændringer" },
-  { value: "updates_available",label: "Updates",   title: "Vis kun containere med tilgængelige opdateringer" },
-];
+const filters: { value: FilterType; label: string; title: string }[] = [];
+// (rebuilt inside component using translations)
+
 
 interface SummaryCardProps {
   label: string;
@@ -150,11 +151,20 @@ export default function Dashboard() {
   const { data: updates = [] } = useUpdates();
   const { data: groups = [] } = useGroups();
   const { filter, search, sortField, sortAsc, setFilter, setSearch, setSort, selectedIds, clearSelected } = useAppStore();
-  const [bulkConfirm, setBulkConfirm] = useState<"start" | "stop" | "restart" | "update" | null>(null);
-  const [bulkProgressAction, setBulkProgressAction] = useState<"start" | "stop" | "restart" | "update" | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState<BulkActionKey | null>(null);
+  const [bulkProgressAction, setBulkProgressAction] = useState<BulkActionKey | null>(null);
   const [bulkProgressItems, setBulkProgressItems] = useState<BulkProgressItem[]>([]);
   const onProgress = useCallback((items: BulkProgressItem[]) => setBulkProgressItems([...items]), []);
   const bulkActions = useBulkActions(onProgress);
+  const { t } = useLang();
+
+  const filterTabs: { value: FilterType; label: string; title: string }[] = [
+    { value: "all",               label: t.filter_all,       title: t.filter_all_tip },
+    { value: "running",           label: t.filter_running,   title: t.filter_running_tip },
+    { value: "stopped",           label: t.filter_offline,   title: t.filter_offline_tip },
+    { value: "protected",         label: t.filter_protected, title: t.filter_protected_tip },
+    { value: "updates_available", label: t.filter_updates,   title: t.filter_updates_tip },
+  ];
 
   const updateMap = useMemo(
     () => Object.fromEntries(updates.map((u) => [u.container_id, u])),
@@ -210,48 +220,48 @@ export default function Dashboard() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <SummaryCard
-          label="Total"
+          label={t.card_total}
           value={summary?.total ?? containers.length}
           icon={<Box className="h-4 w-4 text-slate-300" />}
           color="bg-slate-700"
-          title="Total — Det samlede antal Docker-containere på serveren."
+          title={t.card_total_tip}
         />
         <SummaryCard
-          label="Running"
+          label={t.card_running}
           value={summary?.running ?? 0}
           icon={<Activity className="h-4 w-4 text-green-400" />}
           color="bg-green-900/40"
-          title="Running — Containere der kører og er aktive lige nu."
+          title={t.card_running_tip}
         />
         <SummaryCard
-          label="Offline"
+          label={t.card_offline}
           value={summary?.stopped ?? 0}
           icon={<Box className="h-4 w-4 text-slate-400" />}
           color="bg-slate-700"
           onClick={() => setFilter(filter === "stopped" ? "all" : "stopped")}
           active={filter === "stopped"}
-          title="Offline — Containere der er stoppet eller ikke kører. Klik for at filtrere."
+          title={t.card_offline_tip}
         />
         <SummaryCard
-          label="Excluded"
+          label={t.card_excluded}
           value={summary?.excluded ?? 0}
           icon={<EyeOff className="h-4 w-4 text-slate-400" />}
           color="bg-slate-700"
-          title="Excluded — Containere der er skjult fra dashboardet via label eller indstillinger."
+          title={t.card_excluded_tip}
         />
         <SummaryCard
-          label="Protected"
+          label={t.card_protected}
           value={summary?.protected ?? 0}
           icon={<Shield className="h-4 w-4 text-amber-400" />}
           color="bg-amber-900/40"
-          title="Protected — Containere der er låst mod stop, genstart og opdatering."
+          title={t.card_protected_tip}
         />
         <SummaryCard
-          label="Updates"
+          label={t.card_updates}
           value={updatesAvailable}
           icon={<ArrowUpCircle className="h-4 w-4 text-emerald-400" />}
           color="bg-emerald-900/40"
-          title="Updates — Containere hvor der er et nyere Docker image tilgængeligt."
+          title={t.card_updates_tip}
         />
       </div>
 
@@ -259,7 +269,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-1.5 flex-1">
-          {filters.map((f) => (
+          {filterTabs.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
@@ -286,7 +296,7 @@ export default function Dashboard() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
           <input
             type="text"
-            placeholder="Search name, IP, image…"
+            placeholder={t.search_placeholder}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-slate-800 border border-slate-700 text-sm text-slate-300 placeholder-slate-600 rounded-lg pl-8 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-600"
@@ -297,35 +307,35 @@ export default function Dashboard() {
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 bg-blue-900/30 border border-blue-700/50 rounded-xl px-4 py-2.5">
-          <span className="text-sm font-medium text-blue-300">{selectedIds.size} selected</span>
+          <span className="text-sm font-medium text-blue-300">{t.bulk_selected(selectedIds.size)}</span>
           <div className="flex items-center gap-2 flex-1">
             <button
               onClick={() => setBulkConfirm("start")}
               disabled={bulkActions.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-800/50 text-green-300 hover:bg-green-700/60 transition-colors disabled:opacity-50"
             >
-              <Play className="h-3.5 w-3.5" /> Start
+              <Play className="h-3.5 w-3.5" /> {t.bulk_start}
             </button>
             <button
               onClick={() => setBulkConfirm("stop")}
               disabled={bulkActions.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-900/40 text-red-300 hover:bg-red-800/50 transition-colors disabled:opacity-50"
             >
-              <Square className="h-3.5 w-3.5" /> Stop
+              <Square className="h-3.5 w-3.5" /> {t.bulk_stop}
             </button>
             <button
               onClick={() => setBulkConfirm("restart")}
               disabled={bulkActions.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-800/40 text-blue-300 hover:bg-blue-700/50 transition-colors disabled:opacity-50"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Restart
+              <RotateCcw className="h-3.5 w-3.5" /> {t.bulk_restart}
             </button>
             <button
               onClick={() => setBulkConfirm("update")}
               disabled={bulkActions.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-900/40 text-emerald-300 hover:bg-emerald-800/50 transition-colors disabled:opacity-50"
             >
-              <ArrowUpCircle className="h-3.5 w-3.5" /> Update
+              <ArrowUpCircle className="h-3.5 w-3.5" /> {t.bulk_update}
             </button>
           </div>
           <button onClick={clearSelected} className="text-slate-500 hover:text-slate-300 transition-colors">
@@ -337,7 +347,7 @@ export default function Dashboard() {
       {/* Table */}
       {isLoading ? (
         <div className="flex items-center justify-center h-40 text-slate-500">
-          <span className="animate-pulse">Loading containers…</span>
+          <span className="animate-pulse">{t.loading_containers}</span>
         </div>
       ) : (
         <ContainerTable containers={filtered} updateStatuses={updates} groups={groups} />

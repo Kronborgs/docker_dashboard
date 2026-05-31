@@ -14,6 +14,7 @@ import { useContainerActions, useContainerSettings, usePatchContainerSettings } 
 import type { UpdateResult } from "../../types";
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "../../store/useAppStore";
+import { useLang } from "../../i18n/translations";
 
 interface ContainerRowProps {
   container: Container;
@@ -57,24 +58,17 @@ function HealthIcon({ health, status }: { health: string; status: string }) {
   return null;
 }
 
-function statusLabel(status: string): string {
-  if (status === "exited") return "offline";
-  if (status === "dead") return "powered off";
-  if (status === "created") return "created";
-  if (status === "paused") return "paused";
-  if (status === "restarting") return "restarting";
+function statusLabel(status: string, t: ReturnType<typeof useLang>["t"]): string {
+  if (status === "exited") return t.status_offline;
+  if (status === "dead") return t.status_powered_off;
+  if (status === "created") return t.status_created;
+  if (status === "paused") return t.status_paused;
+  if (status === "restarting") return t.status_restarting;
+  if (status === "running") return t.status_running;
   return status;
 }
 
 type ActionType = "start" | "stop" | "restart" | "update" | "rollback";
-
-const actionLabels: Record<ActionType, string> = {
-  start: "Start",
-  stop: "Stop",
-  restart: "Restart",
-  update: "Update",
-  rollback: "Rollback",
-};
 
 export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   const navigate = useNavigate();
@@ -86,6 +80,15 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
   const { data: dbSettings } = useContainerSettings(container.name);
   const patch = usePatchContainerSettings(container.name);
   const isSelected = selectedIds.has(container.id);
+  const { t } = useLang();
+
+  const actionLabel: Record<ActionType, string> = {
+    start: t.action_start,
+    stop: t.action_stop,
+    restart: t.action_restart,
+    update: t.action_update,
+    rollback: t.action_rollback,
+  };
 
   const isPending =
     actions.start.isPending ||
@@ -149,19 +152,19 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
           <div className="flex flex-wrap gap-1 mt-1">
             {container.protected && (
               <Badge color="amber" size="xs">
-                <Shield className="h-2.5 w-2.5" /> protected
+                <Shield className="h-2.5 w-2.5" /> {t.settings_badge_protected}
               </Badge>
             )}
             {hasUpdate && (
               <Badge color="green" size="xs">
-                <ArrowUpCircle className="h-2.5 w-2.5" /> update
+                <ArrowUpCircle className="h-2.5 w-2.5" /> {t.action_update}
               </Badge>
             )}
           </div>
         </td>
 
         {/* Status */}
-        <td className="px-4 py-3 text-sm text-slate-400">{statusLabel(container.status)}</td>
+        <td className="px-4 py-3 text-sm text-slate-400">{statusLabel(container.status, t)}</td>
 
         {/* Image */}
         <td className="px-4 py-3">
@@ -216,7 +219,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
             <Button
               size="sm"
               variant="ghost"
-              title="View Logs"
+              title={t.detail_logs}
               onClick={() => setShowLogs(true)}
             >
               <FileText className="h-3.5 w-3.5" />
@@ -225,7 +228,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
             {container.protected && (
               <span
                 className="inline-flex items-center gap-1 text-xs text-amber-700 px-1.5 py-1 select-none"
-                title="Container is protected — actions disabled"
+                title={t.detail_protected_msg}
               >
                 <Shield className="h-3 w-3" />
               </span>
@@ -237,7 +240,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    title="Start"
+                    title={t.action_start}
                     loading={actions.start.isPending}
                     onClick={() => setConfirm("start")}
                   >
@@ -248,7 +251,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      title="Stop"
+                      title={t.action_stop}
                       loading={actions.stop.isPending}
                       onClick={() => setConfirm("stop")}
                     >
@@ -257,7 +260,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      title="Restart"
+                      title={t.action_restart}
                       loading={actions.restart.isPending}
                       onClick={() => setConfirm("restart")}
                     >
@@ -269,7 +272,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    title="Update"
+                    title={t.action_update}
                     loading={actions.update.isPending}
                     onClick={() => setConfirm("update")}
                   >
@@ -279,7 +282,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  title="Rollback"
+                  title={t.action_rollback}
                   loading={actions.rollback.isPending}
                   onClick={() => setConfirm("rollback")}
                 >
@@ -295,7 +298,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
           <button
             disabled={patch.isPending}
             onClick={() => patch.mutate({ protected: !container.protected })}
-            title={container.protected ? "Unprotect" : "Protect"}
+            title={container.protected ? t.toggle_unprotect : t.toggle_protect}
             className={clsx(
               "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
               container.protected ? "bg-amber-500" : "bg-slate-600",
@@ -311,7 +314,7 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
           <button
             disabled={patch.isPending}
             onClick={() => patch.mutate({ excluded: !(dbSettings?.excluded ?? false) })}
-            title={(dbSettings?.excluded ?? false) ? "Re-include" : "Exclude"}
+            title={(dbSettings?.excluded ?? false) ? t.settings_reinclude : t.toggle_exclude}
             className={clsx(
               "relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
               (dbSettings?.excluded ?? false) ? "bg-red-500" : "bg-slate-600",
@@ -336,9 +339,9 @@ export function ContainerRow({ container, updateStatus }: ContainerRowProps) {
       {confirm && (
         <ConfirmModal
           open
-          title={`${actionLabels[confirm]} container?`}
-          description={`Are you sure you want to ${actionLabels[confirm].toLowerCase()} "${container.name.replace(/^\//, "")}"?`}
-          confirmLabel={actionLabels[confirm]}
+          title={t.detail_confirm_title(actionLabel[confirm])}
+          description={t.detail_confirm_desc(actionLabel[confirm], container.name.replace(/^\//, ""))}
+          confirmLabel={actionLabel[confirm]}
           variant={["stop", "update", "rollback"].includes(confirm) ? "danger" : "primary"}
           loading={isPending}
           onConfirm={handleConfirm}

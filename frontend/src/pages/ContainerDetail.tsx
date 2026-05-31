@@ -15,6 +15,7 @@ import { UpdateResultModal } from "../components/modals/UpdateResultModal";
 import { format } from "date-fns";
 import type { UpdateResult } from "../types";
 import { clsx } from "clsx";
+import { useLang } from "../i18n/translations";
 
 type ChartMetric = "cpu" | "memory" | "network" | "block";
 type ActionType = "start" | "stop" | "restart" | "update" | "rollback";
@@ -40,6 +41,7 @@ interface SettingToggleProps {
 }
 
 function SettingToggle({ label, description, icon, value, fromLabel, activeColor, onToggle, loading }: SettingToggleProps) {
+  const { t } = useLang();
   return (
     <div className="flex items-center justify-between py-2 border-b border-slate-700/50 last:border-0">
       <div className="flex items-center gap-2 min-w-0">
@@ -49,7 +51,7 @@ function SettingToggle({ label, description, icon, value, fromLabel, activeColor
           <p className="text-[10px] text-slate-600">{description}</p>
         </div>
         {fromLabel && (
-          <span className="text-[10px] text-slate-600 ml-1">(via label)</span>
+          <span className="text-[10px] text-slate-600 ml-1">{t.detail_via_label}</span>
         )}
       </div>
       <button
@@ -88,12 +90,13 @@ export default function ContainerDetail() {
   const [confirm, setConfirm] = useState<ActionType | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
+  const { t } = useLang();
 
   if (isLoading) {
-    return <div className="text-slate-500 animate-pulse p-8">Loading…</div>;
+    return <div className="text-slate-500 animate-pulse p-8">{t.loading}</div>;
   }
   if (!container) {
-    return <div className="text-red-400 p-8">Container not found.</div>;
+    return <div className="text-red-400 p-8">{t.detail_not_found}</div>;
   }
 
   const updateStatus = updates.find((u) => u.container_id === container.id);
@@ -138,47 +141,47 @@ export default function ContainerDetail() {
         <div className="flex flex-wrap gap-1.5">
           {container.protected && (
             <Badge color="amber">
-              <Shield className="h-3 w-3" /> protected
+              <Shield className="h-3 w-3" /> {t.settings_badge_protected}
             </Badge>
           )}
-          {hasUpdate && <Badge color="green"><ArrowUpCircle className="h-3 w-3" /> update available</Badge>}
+          {hasUpdate && <Badge color="green"><ArrowUpCircle className="h-3 w-3" /> {t.detail_badge_update}</Badge>}
         </div>
       </div>
 
       {/* Action bar */}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="ghost" onClick={() => setShowLogs(true)}>
-          <FileText className="h-3.5 w-3.5" /> Logs
+          <FileText className="h-3.5 w-3.5" /> {t.detail_logs}
         </Button>
         {canAct && (
           <>
             {container.status !== "running" ? (
               <Button size="sm" variant="primary" loading={actions.start.isPending} onClick={() => setConfirm("start")}>
-                <Play className="h-3.5 w-3.5" /> Start
+                <Play className="h-3.5 w-3.5" /> {t.action_start}
               </Button>
             ) : (
               <>
                 <Button size="sm" variant="danger" loading={actions.stop.isPending} onClick={() => setConfirm("stop")}>
-                  <Square className="h-3.5 w-3.5" /> Stop
+                  <Square className="h-3.5 w-3.5" /> {t.action_stop}
                 </Button>
                 <Button size="sm" variant="secondary" loading={actions.restart.isPending} onClick={() => setConfirm("restart")}>
-                  <RotateCcw className="h-3.5 w-3.5" /> Restart
+                  <RotateCcw className="h-3.5 w-3.5" /> {t.action_restart}
                 </Button>
               </>
             )}
             {hasUpdate && (
               <Button size="sm" variant="primary" loading={actions.update.isPending} onClick={() => setConfirm("update")}>
-                <ArrowUpCircle className="h-3.5 w-3.5" /> Update
+                <ArrowUpCircle className="h-3.5 w-3.5" /> {t.action_update}
               </Button>
             )}
             <Button size="sm" variant="secondary" loading={actions.rollback.isPending} onClick={() => setConfirm("rollback")}>
-              <RotateCw className="h-3.5 w-3.5" /> Rollback
+              <RotateCw className="h-3.5 w-3.5" /> {t.action_rollback}
             </Button>
           </>
         )}
         {!canAct && container.protected && (
           <span className="flex items-center gap-1 text-xs text-amber-400">
-            <Shield className="h-3.5 w-3.5" /> Protected — actions disabled
+            <Shield className="h-3.5 w-3.5" /> {t.detail_protected_msg}
           </span>
         )}
       </div>
@@ -188,21 +191,21 @@ export default function ContainerDetail() {
         <div className="lg:col-span-1 space-y-4">
           {/* Status */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Status</h2>
-            <InfoRow label="Status" value={container.status} />
-            <InfoRow label="Health" value={container.health} />
-            <InfoRow label="Uptime" value={container.uptime_seconds ? `${Math.floor(container.uptime_seconds / 3600)}h ${Math.floor((container.uptime_seconds % 3600) / 60)}m` : null} />
-            <InfoRow label="Restart policy" value={container.restart_policy} />
-            <InfoRow label="Hostname" value={container.hostname} />
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.detail_section_status}</h2>
+            <InfoRow label={t.info_status} value={container.status} />
+            <InfoRow label={t.info_health} value={container.health} />
+            <InfoRow label={t.info_uptime} value={container.uptime_seconds ? `${Math.floor(container.uptime_seconds / 3600)}h ${Math.floor((container.uptime_seconds % 3600) / 60)}m` : null} />
+            <InfoRow label={t.info_restart_policy} value={container.restart_policy} />
+            <InfoRow label={t.info_hostname} value={container.hostname} />
           </section>
 
           {/* Image */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Image</h2>
-            <InfoRow label="Image" value={`${container.image}:${container.image_tag}`} />
-            <InfoRow label="Image ID" value={container.image_id.slice(0, 24) + "…"} />
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.detail_section_image}</h2>
+            <InfoRow label={t.info_image} value={`${container.image}:${container.image_tag}`} />
+            <InfoRow label={t.info_image_id} value={container.image_id.slice(0, 24) + "…"} />
             {updateStatus && (
-              <InfoRow label="Update status" value={
+              <InfoRow label={t.info_update_status} value={
                 <Badge color={updateStatus.status === "update_available" ? "green" : "slate"} size="xs">
                   {updateStatus.status.replace(/_/g, " ")}
                 </Badge>
@@ -212,21 +215,21 @@ export default function ContainerDetail() {
 
           {/* Network */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Network</h2>
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.detail_section_network}</h2>
             {container.networks.map((n) => (
               <div key={n.network_name} className="mb-2 last:mb-0">
-                <InfoRow label="Network" value={n.network_name} />
-                <InfoRow label="IP" value={n.ip} />
-                <InfoRow label="MAC" value={n.mac} />
+                <InfoRow label={t.info_network} value={n.network_name} />
+                <InfoRow label={t.info_ip} value={n.ip} />
+                <InfoRow label={t.info_mac} value={n.mac} />
               </div>
             ))}
-            <InfoRow label="Network mode" value={(container as any).network_mode} />
+            <InfoRow label={t.info_network_mode} value={(container as any).network_mode} />
           </section>
 
           {/* Mounts */}
           {(container as any).mounts?.length > 0 && (
             <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Mounts</h2>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.detail_section_mounts}</h2>
               {(container as any).mounts.map((m: any, i: number) => (
                 <div key={i} className="text-xs font-mono text-slate-400 truncate mb-1">
                   <span className="text-slate-600">{m.Type}:</span> {m.Source} → {m.Destination}
@@ -237,10 +240,10 @@ export default function ContainerDetail() {
 
           {/* Dashboard Settings */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Dashboard Settings</h2>
+            <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{t.detail_section_settings}</h2>
             <SettingToggle
-              label="Protected"
-              description="Disables start / stop / restart / update"
+              label={t.detail_setting_protected_label}
+              description={t.detail_setting_protected_desc}
               icon={<Shield className="h-3.5 w-3.5" />}
               value={container.protected}
               fromLabel={container.protected && dbSettings?.protected == null}
@@ -249,8 +252,8 @@ export default function ContainerDetail() {
               loading={patchSettings.isPending}
             />
             <SettingToggle
-              label="Excluded"
-              description="Hides container from the dashboard"
+              label={t.detail_setting_excluded_label}
+              description={t.detail_setting_excluded_desc}
               icon={<EyeOff className="h-3.5 w-3.5" />}
               value={dbSettings?.excluded ?? false}
               fromLabel={false}
@@ -266,14 +269,14 @@ export default function ContainerDetail() {
           {/* Live stats */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Stats (24h)</h2>
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.chart_stats_header}</h2>
               <div className="flex gap-1">
                 {(
                   [
-                    { key: "cpu",     label: "cpu",     title: "CPU — Procentdel af CPU-tid containeren bruger. Høj CPU kan betyde tung beregning eller en hængt proces." },
-                    { key: "memory",  label: "memory",  title: "Memory — RAM-forbrug i MB. Viser hvor meget hukommelse containeren har allokeret og bruger." },
-                    { key: "network", label: "network", title: "Network — Netværkstrafik (RX = modtaget, TX = sendt). Nyttigt til at se båndbreddeforbrug og aktivitet." },
-                    { key: "block",   label: "block",   title: "Block I/O — Disk-læsning og skrivning. Høj block I/O kan indikere tung databaseaktivitet eller filoperationer." },
+                    { key: "cpu",     label: t.chart_cpu_label,     title: t.chart_cpu_tip },
+                    { key: "memory",  label: t.chart_memory_label,  title: t.chart_memory_tip },
+                    { key: "network", label: t.chart_network_label, title: t.chart_network_tip },
+                    { key: "block",   label: t.chart_block_label,   title: t.chart_block_tip },
                   ] as { key: ChartMetric; label: string; title: string }[]
                 ).map(({ key, label, title }) => (
                   <button
@@ -295,10 +298,10 @@ export default function ContainerDetail() {
             {/* Live values */}
             <div className="grid grid-cols-4 gap-3 mb-4">
               {[
-                { label: "CPU", value: `${container.cpu_percent.toFixed(1)}%` },
-                { label: "RAM", value: `${container.mem_usage_mb.toFixed(0)}MB` },
-                { label: "RX", value: fmtBytes(container.net_rx_bytes) },
-                { label: "TX", value: fmtBytes(container.net_tx_bytes) },
+                { label: t.chart_live_cpu, value: `${container.cpu_percent.toFixed(1)}%` },
+                { label: t.chart_live_ram, value: `${container.mem_usage_mb.toFixed(0)}MB` },
+                { label: t.chart_live_rx, value: fmtBytes(container.net_rx_bytes) },
+                { label: t.chart_live_tx, value: fmtBytes(container.net_tx_bytes) },
               ].map(({ label, value }) => (
                 <div key={label} className="bg-slate-900 rounded-lg p-3 text-center">
                   <p className="text-lg font-bold text-slate-100">{value}</p>
@@ -312,11 +315,11 @@ export default function ContainerDetail() {
           {/* Events timeline */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Events ({events.length})
+              {t.detail_section_events(events.length)}
             </h2>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {events.length === 0 && (
-                <p className="text-sm text-slate-600">No events yet</p>
+                <p className="text-sm text-slate-600">{t.detail_no_events}</p>
               )}
               {events.map((ev) => (
                 <div key={ev.id} className="flex items-center gap-3 text-xs">
@@ -338,10 +341,10 @@ export default function ContainerDetail() {
           {/* Backups */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
             <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-              Backups ({backups.length})
+              {t.detail_section_backups(backups.length)}
             </h2>
             {backups.length === 0 ? (
-              <p className="text-sm text-slate-600">No backups yet</p>
+              <p className="text-sm text-slate-600">{t.detail_no_backups}</p>
             ) : (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {backups.map((b) => (
@@ -374,8 +377,8 @@ export default function ContainerDetail() {
       {confirm && (
         <ConfirmModal
           open
-          title={`${confirm.charAt(0).toUpperCase() + confirm.slice(1)} container?`}
-          description={`Are you sure you want to ${confirm} "${container.name.replace(/^\//, "")}"?`}
+          title={t.detail_confirm_title(confirm.charAt(0).toUpperCase() + confirm.slice(1))}
+          description={t.detail_confirm_desc(confirm.charAt(0).toUpperCase() + confirm.slice(1), container.name.replace(/^\//, ""))}
           confirmLabel={confirm.charAt(0).toUpperCase() + confirm.slice(1)}
           variant={["stop", "update", "rollback"].includes(confirm) ? "danger" : "primary"}
           loading={isPending}
