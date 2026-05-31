@@ -250,32 +250,3 @@ export default function Groups() {
     </div>
   );
 }
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Create Group
-        </button>
-      </form>
-
-      {/* Existing groups */}
-      {isLoading ? (
-        <p className="text-slate-500 text-sm">Loading groups…</p>
-      ) : groups.length === 0 ? (
-        <div className="text-center py-12 text-slate-600">
-          <Folder className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>No groups yet. Create one above.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {groups.map((grp) => (
-            <GroupCard
-              key={grp.id}
-              group={grp}
-              containerNames={memberMap[grp.id] ?? []}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
