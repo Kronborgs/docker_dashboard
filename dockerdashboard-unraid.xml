@@ -6,10 +6,10 @@
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
-  <Privileged>false</Privileged>
+  <Privileged>true</Privileged>
   <Support>https://github.com/Kronborgs/docker_dashboard/issues</Support>
   <Project>https://github.com/Kronborgs/docker_dashboard</Project>
-  <Overview>A self-hosted Docker dashboard for Unraid. Monitor all containers with live CPU/RAM/network stats, historical graphs, log viewer, update checker (supports Docker Hub, GHCR, LSCR and private registries), one-click update with automatic backup and rollback.&#xD;&#xA;&#xD;&#xA;All containers are visible and controllable by default. To protect a container from being stopped/updated add the label: com.kronborg.dashboard.protected=true&#xD;&#xA;To hide a container from the dashboard add: com.kronborg.dashboard.excluded=true</Overview>
+  <Overview>A self-hosted Docker dashboard for Unraid. Monitor all containers with live CPU/RAM/network stats, historical graphs, log viewer, update checker (supports Docker Hub, GHCR, LSCR and private registries), one-click update with automatic backup and rollback.&#xD;&#xA;&#xD;&#xA;&#x26;#9888; WARNING: This container runs in Privileged mode. This is required to access the Docker socket and read/control all containers on the host. Only run this on a trusted private network.&#xD;&#xA;&#xD;&#xA;All containers are visible and controllable by default. To protect a container from being stopped/updated add the label: com.kronborg.dashboard.protected=true&#xD;&#xA;To hide a container from the dashboard add: com.kronborg.dashboard.excluded=true</Overview>
   <Category>Tools: Network:Management Status:Beta</Category>
   <WebUI>http://[IP]:[PORT:8088]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Kronborgs/docker_dashboard/main/dockerdashboard-unraid.xml</TemplateURL>
@@ -20,7 +20,7 @@
   <DateInstalled/>
   <DonateText/>
   <DonateLink/>
-  <Requires>Docker socket access (/var/run/docker.sock) is required. The container runs as root to access the Docker socket.</Requires>
+  <Requires>⚠️ WARNING: This container runs in PRIVILEGED mode. This is required to access the Docker socket and control other containers. Only run this on a trusted private network. Docker socket access (/var/run/docker.sock) is required.</Requires>
 
   <!-- Web UI Port -->
   <Config
