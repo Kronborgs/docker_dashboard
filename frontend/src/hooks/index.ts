@@ -19,6 +19,11 @@ import {
   fetchContainerSettings,
   patchContainerSettings,
   deleteContainerSettings,
+  fetchGroups,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  setGroupMembers,
 } from "../api/client";
 import { useAppStore } from "../store/useAppStore";
 import type { ContainerSettings } from "../types";
@@ -250,4 +255,58 @@ export function useBulkActions() {
   });
 
   return bulk;
+}
+
+export function useGroups() {
+  return useQuery({
+    queryKey: ["groups"],
+    queryFn: fetchGroups,
+  });
+}
+
+export function useCreateGroup() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: ({ name, color }: { name: string; color?: string }) => createGroup(name, color),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+    onError: (e: Error) => addToast("error", e.message),
+  });
+}
+
+export function useUpdateGroup() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: ({ id, name, color }: { id: number; name: string; color?: string }) =>
+      updateGroup(id, name, color),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["groups"] }),
+    onError: (e: Error) => addToast("error", e.message),
+  });
+}
+
+export function useDeleteGroup() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: (id: number) => deleteGroup(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["containers"] });
+    },
+    onError: (e: Error) => addToast("error", e.message),
+  });
+}
+
+export function useSetGroupMembers() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: ({ id, names }: { id: number; names: string[] }) => setGroupMembers(id, names),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["groups"] });
+      qc.invalidateQueries({ queryKey: ["containers"] });
+    },
+    onError: (e: Error) => addToast("error", e.message),
+  });
 }

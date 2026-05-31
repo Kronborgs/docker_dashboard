@@ -60,10 +60,20 @@ class Backup(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=False, index=True)
 
 
+class ContainerGroup(Base):
+    __tablename__ = "container_groups"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(256), nullable=False, unique=True)
+    color = Column(String(32), nullable=True)  # blue/green/amber/purple/red/teal
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+
+
 class ContainerSettings(Base):
     __tablename__ = "container_settings"
 
     container_name = Column(String(256), primary_key=True)
     protected = Column(Boolean, nullable=True)   # None = defer to Docker label
     excluded = Column(Boolean, nullable=True)    # None = defer to Docker label
+    group_id = Column(Integer, nullable=True)    # FK to container_groups.id
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

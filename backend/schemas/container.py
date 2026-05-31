@@ -36,6 +36,7 @@ class ContainerOut(BaseModel):
     restart_policy: str
     command: Optional[str]
     hostname: str
+    group_id: Optional[int] = None
 
 
 class ContainerDetail(ContainerOut):
@@ -129,6 +130,7 @@ class ContainerSettingsOut(BaseModel):
     container_name: str
     protected: Optional[bool]
     excluded: Optional[bool]
+    group_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -137,3 +139,22 @@ class ContainerSettingsOut(BaseModel):
 class ContainerSettingsPatch(BaseModel):
     protected: Optional[bool] = None
     excluded: Optional[bool] = None
+    group_id: Optional[int] = None
+
+
+class GroupOut(BaseModel):
+    id: int
+    name: str
+    color: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class GroupCreate(BaseModel):
+    name: str
+    color: Optional[str] = None
+
+
+class GroupSetMembers(BaseModel):
+    container_names: List[str]

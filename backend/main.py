@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from database.engine import init_db
-from routers import containers, updates, backups, summary, settings
+from routers import containers, updates, backups, summary, settings, groups
 from services.stats_collector import run_stats_collector
 from services.event_listener import run_event_listener
 
@@ -57,6 +57,7 @@ app.include_router(updates.router)
 app.include_router(backups.router)
 app.include_router(summary.router)
 app.include_router(settings.router)
+app.include_router(groups.router)
 
 
 # History endpoint — all events across all containers

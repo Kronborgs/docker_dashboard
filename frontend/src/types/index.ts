@@ -31,6 +31,7 @@ export interface Container {
   restart_policy: string;
   command: string | null;
   hostname: string;
+  group_id: number | null;
 }
 
 export interface ContainerDetail extends Container {
@@ -126,6 +127,13 @@ export interface ContainerSettings {
   container_name: string;
   protected: boolean | null;
   excluded: boolean | null;
+  group_id: number | null;
+}
+
+export interface ContainerGroup {
+  id: number;
+  name: string;
+  color: string | null;
 }
 
 export type SortField =

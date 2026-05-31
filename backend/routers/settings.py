@@ -46,6 +46,8 @@ async def patch_settings(
         row.protected = patch.protected
     if "excluded" in patch.model_fields_set:
         row.excluded = patch.excluded
+    if "group_id" in patch.model_fields_set:
+        row.group_id = patch.group_id
 
     await db.commit()
     await db.refresh(row)

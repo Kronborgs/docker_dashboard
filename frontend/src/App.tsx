@@ -6,6 +6,7 @@ import ContainerDetail from "./pages/ContainerDetail";
 import History from "./pages/History";
 import Backups from "./pages/Backups";
 import Settings from "./pages/Settings";
+import Groups from "./pages/Groups";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/history" element={<History />} />
             <Route path="/backups" element={<Backups />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/groups" element={<Groups />} />
           </Routes>
         </AppLayout>
       </BrowserRouter>

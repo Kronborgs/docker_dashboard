@@ -65,6 +65,8 @@ async def list_containers(db: AsyncSession = Depends(get_db)):
             # Merge DB protected override
             if row is not None and row.protected is not None:
                 summary["protected"] = row.protected
+            # Merge group_id
+            summary["group_id"] = row.group_id if row is not None else None
             return summary
         except Exception:
             return None

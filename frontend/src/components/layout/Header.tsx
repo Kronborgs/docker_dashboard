@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, History, Database, RefreshCw, Settings } from "lucide-react";
+import { LayoutDashboard, History, Database, RefreshCw, Settings, Folder } from "lucide-react";
 import { clsx } from "clsx";
 import { useSummary } from "../../hooks";
 
@@ -9,6 +9,7 @@ export function Header() {
 
   const nav = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/groups", label: "Groups", icon: Folder },
     { to: "/history", label: "History", icon: History },
     { to: "/backups", label: "Backups", icon: Database },
     { to: "/settings", label: "Settings", icon: Settings },

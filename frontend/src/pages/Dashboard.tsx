@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useContainers, useSummary, useUpdates, useBulkActions } from "../hooks";
+import { useContainers, useSummary, useUpdates, useBulkActions, useGroups } from "../hooks";
 import { useAppStore } from "../store/useAppStore";
 import { ContainerTable } from "../components/containers/ContainerTable";
 import { Badge } from "../components/ui/Badge";
@@ -75,6 +75,7 @@ export default function Dashboard() {
   const { data: containers = [], isLoading } = useContainers();
   const { data: summary } = useSummary();
   const { data: updates = [] } = useUpdates();
+  const { data: groups = [] } = useGroups();
   const { filter, search, sortField, sortAsc, setFilter, setSearch, setSort, selectedIds, clearSelected } = useAppStore();
   const bulkActions = useBulkActions();
   const [bulkConfirm, setBulkConfirm] = useState<"start" | "stop" | "restart" | "update" | null>(null);
@@ -263,7 +264,7 @@ export default function Dashboard() {
           <span className="animate-pulse">Loading containers…</span>
         </div>
       ) : (
-        <ContainerTable containers={filtered} updateStatuses={updates} />
+        <ContainerTable containers={filtered} updateStatuses={updates} groups={groups} />
       )}
 
       {/* Bulk confirm */}
