@@ -14,6 +14,7 @@ const filters: { value: FilterType; label: string }[] = [
   { value: "all", label: "All" },
   { value: "running", label: "Running" },
   { value: "stopped", label: "Stopped" },
+  { value: "unhealthy", label: "Unhealthy" },
   { value: "protected", label: "Protected" },
   { value: "updates_available", label: "Updates" },
 ];
@@ -23,11 +24,20 @@ interface SummaryCardProps {
   value: number;
   icon: React.ReactNode;
   color: string;
+  onClick?: () => void;
+  active?: boolean;
 }
 
-function SummaryCard({ label, value, icon, color }: SummaryCardProps) {
+function SummaryCard({ label, value, icon, color, onClick, active }: SummaryCardProps) {
   return (
-    <div className="bg-slate-800 border border-slate-700/60 rounded-xl p-4 flex items-center gap-4">
+    <div
+      className={clsx(
+        "bg-slate-800 border rounded-xl p-4 flex items-center gap-4 transition-colors",
+        onClick ? "cursor-pointer hover:bg-slate-700" : "",
+        active ? "border-blue-500" : "border-slate-700/60"
+      )}
+      onClick={onClick}
+    >
       <div className={clsx("p-2.5 rounded-lg", color)}>{icon}</div>
       <div>
         <p className="text-2xl font-bold text-slate-100">{value}</p>
@@ -54,6 +64,7 @@ export default function Dashboard() {
     // Filter
     if (filter === "running") list = list.filter((c) => c.status === "running");
     else if (filter === "stopped") list = list.filter((c) => c.status !== "running");
+    else if (filter === "unhealthy") list = list.filter((c) => c.health === "unhealthy");
     else if (filter === "protected") list = list.filter((c) => c.protected);
     else if (filter === "updates_available")
       list = list.filter((c) => updateMap[c.id]?.status === "update_available");
@@ -137,6 +148,8 @@ export default function Dashboard() {
           value={summary?.unhealthy ?? 0}
           icon={<AlertCircle className="h-4 w-4 text-red-400" />}
           color="bg-red-900/40"
+          onClick={() => setFilter(filter === "unhealthy" ? "all" : "unhealthy")}
+          active={filter === "unhealthy"}
         />
       </div>
 

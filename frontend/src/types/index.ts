@@ -119,7 +119,8 @@ export type FilterType =
   | "running"
   | "stopped"
   | "protected"
-  | "updates_available";
+  | "updates_available"
+  | "unhealthy";
 
 export type SortField =
   | "name"
