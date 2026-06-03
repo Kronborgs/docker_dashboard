@@ -112,28 +112,71 @@ async def get_stats_history(
     db: AsyncSession = Depends(get_db),
 ):
     from datetime import datetime, timezone, timedelta
+    from sqlalchemy import func, text as sa_text
+
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    result = await db.execute(
-        select(ContainerStats)
-        .where(ContainerStats.container_id == container_id)
-        .where(ContainerStats.recorded_at >= since)
-        .order_by(ContainerStats.recorded_at.asc())
-    )
-    rows = result.scalars().all()
-    return [
-        StatsHistoryPoint(
-            recorded_at=r.recorded_at,
-            cpu_percent=r.cpu_percent,
-            mem_usage_mb=r.mem_usage_mb,
-            mem_percent=r.mem_percent,
-            net_rx_bytes=r.net_rx_bytes,
-            net_tx_bytes=r.net_tx_bytes,
-            block_read_bytes=r.block_read_bytes,
-            block_write_bytes=r.block_write_bytes,
-            pids=r.pids,
+    since_naive = since.replace(tzinfo=None)
+
+    if hours <= 24:
+        # Return raw data points
+        result = await db.execute(
+            select(ContainerStats)
+            .where(ContainerStats.container_id == container_id)
+            .where(ContainerStats.recorded_at >= since_naive)
+            .order_by(ContainerStats.recorded_at.asc())
         )
-        for r in rows
-    ]
+        rows = result.scalars().all()
+        return [
+            StatsHistoryPoint(
+                recorded_at=r.recorded_at,
+                cpu_percent=r.cpu_percent,
+                mem_usage_mb=r.mem_usage_mb,
+                mem_percent=r.mem_percent,
+                net_rx_bytes=r.net_rx_bytes,
+                net_tx_bytes=r.net_tx_bytes,
+                block_read_bytes=r.block_read_bytes,
+                block_write_bytes=r.block_write_bytes,
+                pids=r.pids,
+            )
+            for r in rows
+        ]
+    else:
+        # Aggregate by hour to keep point count manageable for long ranges
+        result = await db.execute(
+            sa_text("""
+                SELECT
+                    strftime('%Y-%m-%dT%H:00:00', recorded_at) AS recorded_at,
+                    AVG(cpu_percent)       AS cpu_percent,
+                    AVG(mem_usage_mb)      AS mem_usage_mb,
+                    AVG(mem_percent)       AS mem_percent,
+                    AVG(net_rx_bytes)      AS net_rx_bytes,
+                    AVG(net_tx_bytes)      AS net_tx_bytes,
+                    AVG(block_read_bytes)  AS block_read_bytes,
+                    AVG(block_write_bytes) AS block_write_bytes,
+                    CAST(AVG(pids) AS INTEGER) AS pids
+                FROM container_stats
+                WHERE container_id = :cid
+                  AND recorded_at >= :since
+                GROUP BY strftime('%Y-%m-%dT%H:00:00', recorded_at)
+                ORDER BY recorded_at ASC
+            """),
+            {"cid": container_id, "since": since_naive.strftime("%Y-%m-%d %H:%M:%S")},
+        )
+        rows = result.fetchall()
+        return [
+            StatsHistoryPoint(
+                recorded_at=r.recorded_at,
+                cpu_percent=round(r.cpu_percent or 0, 2),
+                mem_usage_mb=round(r.mem_usage_mb or 0, 2),
+                mem_percent=round(r.mem_percent or 0, 2),
+                net_rx_bytes=r.net_rx_bytes or 0,
+                net_tx_bytes=r.net_tx_bytes or 0,
+                block_read_bytes=r.block_read_bytes or 0,
+                block_write_bytes=r.block_write_bytes or 0,
+                pids=r.pids or 0,
+            )
+            for r in rows
+        ]
 
 
 @router.get("/{container_id}/events", response_model=List[ContainerEventOut])

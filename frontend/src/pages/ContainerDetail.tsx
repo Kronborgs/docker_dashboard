@@ -18,6 +18,7 @@ import { clsx } from "clsx";
 import { useLang } from "../i18n/translations";
 
 type ChartMetric = "cpu" | "memory" | "network" | "block";
+type ChartRange = 24 | 168 | 720 | 2160;
 type ActionType = "start" | "stop" | "restart" | "update" | "rollback";
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -78,7 +79,7 @@ export default function ContainerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: container, isLoading } = useContainer(id!);
-  const { data: stats = [] } = useStatsHistory(id!, 24);
+  const { data: stats = [] } = useStatsHistory(id!, chartRange);
   const { data: events = [] } = useContainerEvents(id!);
   const { data: backups = [] } = useContainerBackups(container?.name ?? "");
   const { data: updates = [] } = useUpdates();
@@ -87,6 +88,7 @@ export default function ContainerDetail() {
   const patchSettings = usePatchContainerSettings(container?.name ?? "");
 
   const [chartMetric, setChartMetric] = useState<ChartMetric>("cpu");
+  const [chartRange, setChartRange] = useState<ChartRange>(24);
   const [confirm, setConfirm] = useState<ActionType | null>(null);
   const [showLogs, setShowLogs] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
@@ -269,8 +271,10 @@ export default function ContainerDetail() {
           {/* Live stats */}
           <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{t.chart_stats_header}</h2>
-              <div className="flex gap-1">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {chartRange === 24 ? t.chart_stats_header : `Stats (${chartRange === 168 ? "7d" : chartRange === 720 ? "30d" : "90d"})`}
+              </h2>
+              <div className="flex gap-1 flex-wrap justify-end">
                 {(
                   [
                     { key: "cpu",     label: t.chart_cpu_label,     title: t.chart_cpu_tip },
@@ -293,6 +297,28 @@ export default function ContainerDetail() {
                     {label}
                   </button>
                 ))}
+                <span className="w-px bg-slate-700 mx-1 self-stretch" />
+                {(
+                  [
+                    { hours: 24 as ChartRange,   label: t.chart_range_24h },
+                    { hours: 168 as ChartRange,  label: t.chart_range_7d },
+                    { hours: 720 as ChartRange,  label: t.chart_range_30d },
+                    { hours: 2160 as ChartRange, label: t.chart_range_90d },
+                  ]
+                ).map(({ hours, label }) => (
+                  <button
+                    key={hours}
+                    onClick={() => setChartRange(hours)}
+                    className={clsx(
+                      "px-2 py-1 rounded text-xs transition-colors",
+                      chartRange === hours
+                        ? "bg-slate-500 text-white"
+                        : "bg-slate-700 text-slate-400 hover:text-slate-200"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
             {/* Live values */}
@@ -309,7 +335,7 @@ export default function ContainerDetail() {
                 </div>
               ))}
             </div>
-            <StatsChart data={stats} metric={chartMetric} />
+            <StatsChart data={stats} metric={chartMetric} hours={chartRange} />
           </section>
 
           {/* Events timeline */}

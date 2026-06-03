@@ -198,6 +198,12 @@ export interface Translations {
   chart_live_rx: string;
   chart_live_tx: string;
 
+  // Chart time range
+  chart_range_24h: string;
+  chart_range_7d: string;
+  chart_range_30d: string;
+  chart_range_90d: string;
+
   // Data retention
   settings_retention_header: string;
   settings_retention_desc: string;
@@ -393,6 +399,11 @@ export const translations: Record<Lang, Translations> = {
     chart_live_rx: "RX",
     chart_live_tx: "TX",
 
+    chart_range_24h: "24h",
+    chart_range_7d: "7d",
+    chart_range_30d: "30d",
+    chart_range_90d: "90d",
+
     settings_retention_header: "Data Retention",
     settings_retention_desc: "Automatically delete old stats and event history after the selected period.",
     settings_retention_label: "Keep history for",
@@ -584,6 +595,11 @@ export const translations: Record<Lang, Translations> = {
     chart_live_ram: "RAM",
     chart_live_rx: "RX",
     chart_live_tx: "TX",
+
+    chart_range_24h: "24t",
+    chart_range_7d: "7d",
+    chart_range_30d: "30d",
+    chart_range_90d: "90d",
 
     settings_retention_header: "Dataopbevaring",
     settings_retention_desc: "Slet automatisk gamle statistikker og hændelseshistorik efter den valgte periode.",
