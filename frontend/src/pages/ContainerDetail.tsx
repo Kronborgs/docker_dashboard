@@ -78,6 +78,13 @@ function SettingToggle({ label, description, icon, value, fromLabel, activeColor
 export default function ContainerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const [chartMetric, setChartMetric] = useState<ChartMetric>("cpu");
+  const [chartRange, setChartRange] = useState<ChartRange>(24);
+  const [confirm, setConfirm] = useState<ActionType | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
+
   const { data: container, isLoading } = useContainer(id!);
   const { data: stats = [] } = useStatsHistory(id!, chartRange);
   const { data: events = [] } = useContainerEvents(id!);
@@ -87,11 +94,6 @@ export default function ContainerDetail() {
   const { data: dbSettings } = useContainerSettings(container?.name ?? "");
   const patchSettings = usePatchContainerSettings(container?.name ?? "");
 
-  const [chartMetric, setChartMetric] = useState<ChartMetric>("cpu");
-  const [chartRange, setChartRange] = useState<ChartRange>(24);
-  const [confirm, setConfirm] = useState<ActionType | null>(null);
-  const [showLogs, setShowLogs] = useState(false);
-  const [updateResult, setUpdateResult] = useState<UpdateResult | null>(null);
   const { t } = useLang();
 
   if (isLoading) {
