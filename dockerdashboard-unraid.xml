@@ -13,7 +13,7 @@
   <Category>Tools: Network:Management Status:Beta</Category>
   <WebUI>http://[IP]:[PORT:8088]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/Kronborgs/docker_dashboard/main/dockerdashboard-unraid.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/Kronborgs/docker_dashboard/main/pics/dockerdashlogo.png</Icon>
+  <Icon>https://raw.githubusercontent.com/Kronborgs/docker_dashboard/main/unraid-icon.png</Icon>
   <ExtraParams>--label com.kronborg.dashboard.protected=true</ExtraParams>
   <PostArgs/>
   <CPUset/>
