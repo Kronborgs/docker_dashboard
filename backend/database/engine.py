@@ -40,3 +40,9 @@ async def init_db():
             await conn.execute(
                 text("ALTER TABLE container_settings ADD COLUMN group_id INTEGER")
             )
+        # Seed default app config
+        await conn.execute(
+            text(
+                "INSERT OR IGNORE INTO app_config (key, value) VALUES ('data_retention_days', '90')"
+            )
+        )

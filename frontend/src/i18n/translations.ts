@@ -197,6 +197,22 @@ export interface Translations {
   chart_live_ram: string;
   chart_live_rx: string;
   chart_live_tx: string;
+
+  // Data retention
+  settings_retention_header: string;
+  settings_retention_desc: string;
+  settings_retention_label: string;
+  settings_retention_days: (n: number) => string;
+  settings_retention_affects: string;
+
+  // History filters
+  history_filter_container: string;
+  history_filter_container_placeholder: string;
+  history_filter_range: string;
+  history_range_all: string;
+  history_range_7d: string;
+  history_range_30d: string;
+  history_range_90d: string;
 }
 
 export const translations: Record<Lang, Translations> = {
@@ -376,6 +392,20 @@ export const translations: Record<Lang, Translations> = {
     chart_live_ram: "RAM",
     chart_live_rx: "RX",
     chart_live_tx: "TX",
+
+    settings_retention_header: "Data Retention",
+    settings_retention_desc: "Automatically delete old stats and event history after the selected period.",
+    settings_retention_label: "Keep history for",
+    settings_retention_days: (n) => `${n} days`,
+    settings_retention_affects: "Applies to: container stats, event log entries.",
+
+    history_filter_container: "Container",
+    history_filter_container_placeholder: "Filter by name\u2026",
+    history_filter_range: "Period",
+    history_range_all: "All time",
+    history_range_7d: "Last 7 days",
+    history_range_30d: "Last 30 days",
+    history_range_90d: "Last 90 days",
   },
 
   da: {
@@ -554,6 +584,20 @@ export const translations: Record<Lang, Translations> = {
     chart_live_ram: "RAM",
     chart_live_rx: "RX",
     chart_live_tx: "TX",
+
+    settings_retention_header: "Dataopbevaring",
+    settings_retention_desc: "Slet automatisk gamle statistikker og hændelseshistorik efter den valgte periode.",
+    settings_retention_label: "Gem historik i",
+    settings_retention_days: (n) => `${n} dage`,
+    settings_retention_affects: "Gælder for: container-statistikker og hændelseslog-poster.",
+
+    history_filter_container: "Container",
+    history_filter_container_placeholder: "Filtrer på navn\u2026",
+    history_filter_range: "Periode",
+    history_range_all: "Al tid",
+    history_range_7d: "Seneste 7 dage",
+    history_range_30d: "Seneste 30 dage",
+    history_range_90d: "Seneste 90 dage",
   },
 };
 

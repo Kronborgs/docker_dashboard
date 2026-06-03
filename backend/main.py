@@ -11,6 +11,7 @@ from database.engine import init_db
 from routers import containers, updates, backups, summary, settings, groups
 from services.stats_collector import run_stats_collector
 from services.event_listener import run_event_listener
+from services.cleanup_service import run_cleanup_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(run_stats_collector(), name="stats_collector"),
         asyncio.create_task(run_event_listener(), name="event_listener"),
+        asyncio.create_task(run_cleanup_service(), name="cleanup_service"),
     ]
     logger.info("Background tasks started")
 

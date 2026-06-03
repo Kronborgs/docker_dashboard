@@ -135,6 +135,10 @@ export interface ContainerGroup {
   color: string | null;
 }
 
+export interface AppConfig {
+  data_retention_days: 30 | 60 | 90;
+}
+
 export type SortField =
   | "name"
   | "cpu_percent"

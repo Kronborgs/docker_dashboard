@@ -158,3 +158,11 @@ class GroupCreate(BaseModel):
 
 class GroupSetMembers(BaseModel):
     container_names: List[str]
+
+
+class AppConfigOut(BaseModel):
+    data_retention_days: int
+
+
+class AppConfigPatch(BaseModel):
+    data_retention_days: int

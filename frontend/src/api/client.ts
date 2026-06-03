@@ -10,6 +10,7 @@ import type {
   Summary,
   ContainerSettings,
   ContainerGroup,
+  AppConfig,
 } from "../types";
 
 const api = axios.create({
@@ -124,3 +125,10 @@ export const deleteGroup = (id: number): Promise<void> =>
 
 export const setGroupMembers = (id: number, container_names: string[]): Promise<void> =>
   api.put(`/groups/${id}/members`, { container_names }).then(() => undefined);
+
+// App config (data retention, etc.)
+export const fetchAppConfig = (): Promise<AppConfig> =>
+  api.get<AppConfig>("/settings/config/app").then((r) => r.data);
+
+export const patchAppConfig = (patch: Partial<AppConfig>): Promise<AppConfig> =>
+  api.patch<AppConfig>("/settings/config/app", patch).then((r) => r.data);

@@ -24,9 +24,11 @@ import {
   updateGroup,
   deleteGroup,
   setGroupMembers,
+  fetchAppConfig,
+  patchAppConfig,
 } from "../api/client";
 import { useAppStore } from "../store/useAppStore";
-import type { ContainerSettings } from "../types";
+import type { ContainerSettings, AppConfig } from "../types";
 
 export function useContainers() {
   return useQuery({
@@ -353,5 +355,26 @@ export function useSetGroupMembers() {
       qc.invalidateQueries({ queryKey: ["groups"] });
       qc.invalidateQueries({ queryKey: ["containers"] });
     },
+  });
+}
+
+export function useAppConfig() {
+  return useQuery({
+    queryKey: ["app-config"],
+    queryFn: fetchAppConfig,
+    staleTime: 60_000,
+  });
+}
+
+export function usePatchAppConfig() {
+  const qc = useQueryClient();
+  const addToast = useAppStore((s) => s.addToast);
+  return useMutation({
+    mutationFn: (patch: Partial<AppConfig>) => patchAppConfig(patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["app-config"] });
+      addToast("success", "Settings saved");
+    },
+    onError: (e: Error) => addToast("error", e.message),
   });
 }

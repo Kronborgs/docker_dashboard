@@ -1,5 +1,5 @@
-import { useAllSettings, useDeleteContainerSettings, usePatchContainerSettings } from "../hooks";
-import { Shield, EyeOff, Trash2, RefreshCw } from "lucide-react";
+import { useAllSettings, useDeleteContainerSettings, usePatchContainerSettings, useAppConfig, usePatchAppConfig } from "../hooks";
+import { Shield, EyeOff, Trash2, RefreshCw, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import type { ContainerSettings } from "../types";
 import { useLang } from "../i18n/translations";
@@ -53,7 +53,11 @@ function SettingsRow({ row }: { row: ContainerSettings }) {
 
 export default function Settings() {
   const { data: settings = [], isLoading } = useAllSettings();
+  const { data: appConfig } = useAppConfig();
+  const patchApp = usePatchAppConfig();
   const { t } = useLang();
+
+  const retentionDays = appConfig?.data_retention_days ?? 90;
 
   if (isLoading) {
     return <div className="text-slate-500 animate-pulse p-8">{t.loading}</div>;
@@ -67,6 +71,33 @@ export default function Settings() {
           {t.settings_desc}
         </p>
       </div>
+
+      {/* ── Data Retention ── */}
+      <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-5">
+        <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <Clock className="h-3.5 w-3.5" /> {t.settings_retention_header}
+        </h2>
+        <p className="text-xs text-slate-500 mb-4">{t.settings_retention_desc}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm text-slate-400">{t.settings_retention_label}</span>
+          {([30, 60, 90] as const).map((days) => (
+            <button
+              key={days}
+              onClick={() => patchApp.mutate({ data_retention_days: days })}
+              disabled={patchApp.isPending}
+              className={clsx(
+                "px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors disabled:opacity-50",
+                retentionDays === days
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600"
+              )}
+            >
+              {t.settings_retention_days(days)}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-600 mt-3">{t.settings_retention_affects}</p>
+      </section>
 
       <section className="bg-slate-800 border border-slate-700/60 rounded-xl p-5">
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
